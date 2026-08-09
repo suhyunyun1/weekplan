@@ -1,0 +1,711 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>주간 동선 · 투두</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#F2F2F7;--card:#FFF;
+  --label:#000;--label2:rgba(60,60,67,.6);--label3:rgba(60,60,67,.3);
+  --sep:rgba(60,60,67,.22);--fill:rgba(120,120,128,.12);--fill2:rgba(120,120,128,.2);
+  --blue:#007AFF;--indigo:#5856D6;--orange:#FF9500;--gray:#8E8E93;--red:#FF3B30;--green:#34C759;--teal:#30B0C7;
+  --nav:rgba(249,249,249,.72);--sheet:rgba(255,255,255,.94);
+  --shadow:0 .5px 0 rgba(0,0,0,.04),0 10px 30px rgba(0,0,0,.10);
+  --out:cubic-bezier(.23,1,.32,1);--drawer:cubic-bezier(.32,.72,0,1);
+}
+@media(prefers-contrast:more){:root{--nav:var(--bg);--sheet:var(--card);--sep:rgba(0,0,0,.5)}}
+html{-webkit-text-size-adjust:100%;background:var(--bg)}
+body{background:var(--bg);color:var(--label);
+  font:400 17px/1.47 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Apple SD Gothic Neo","Pretendard",system-ui,sans-serif;
+  letter-spacing:-.011em;padding-bottom:calc(72px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased}
+.mono{font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;touch-action:manipulation}
+:focus-visible{outline:2.5px solid var(--blue);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+.hide{display:none!important}
+
+.nav{position:sticky;top:0;z-index:40;background:var(--nav);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);padding-top:env(safe-area-inset-top)}
+.nav::after{content:"";position:absolute;left:0;right:0;bottom:0;height:.5px;background:var(--sep);opacity:0;transition:opacity 200ms ease}
+.nav.scrolled::after{opacity:1}
+.navin{display:flex;align-items:center;height:44px;gap:6px}
+.navtitle{font-size:17px;font-weight:600;opacity:0;transform:translateY(5px);
+  transition:opacity 200ms var(--out),transform 200ms var(--out);position:absolute;left:50%;translate:-50% 0;pointer-events:none}
+.nav.scrolled .navtitle{opacity:1;transform:translateY(0)}
+.navbtn{color:var(--blue);font-size:16px;padding:6px 8px;border-radius:8px;transition:opacity 120ms ease,transform 120ms var(--out)}
+.navbtn:active{opacity:.4;transform:scale(.96)}
+.navsp{margin-left:auto}
+.info{width:28px;height:28px;border-radius:14px;background:var(--fill);color:var(--blue);font-size:15px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;transition:transform 120ms var(--out),background 120ms ease}
+.info:active{transform:scale(.9);background:var(--fill2)}
+
+.lt{padding:8px 0 6px}
+.lt h1{font-size:32px;line-height:1.14;font-weight:700;letter-spacing:-.028em}
+.lt .wk{display:flex;align-items:center;gap:10px;margin-top:4px}
+.lt .wk span{font-size:15px;color:var(--label2)}
+.step{width:30px;height:30px;border-radius:15px;background:var(--fill);color:var(--blue);
+  display:flex;align-items:center;justify-content:center;font-size:17px;transition:transform 120ms var(--out),background 120ms ease}
+.step:active{transform:scale(.9);background:var(--fill2)}
+.today{font-size:13px;color:var(--blue);font-weight:600}
+
+.seg{position:relative;display:flex;background:var(--fill);border-radius:9px;padding:2px;margin:14px 0 18px}
+.seg .thumb{position:absolute;top:2px;bottom:2px;width:calc((100% - 4px)/3);background:#fff;border-radius:7px;
+  box-shadow:0 3px 8px rgba(0,0,0,.12);will-change:transform;transition:transform 220ms var(--drawer)}
+.seg button{position:relative;flex:1;padding:7px 0;font-size:13px;font-weight:600;opacity:.55;transition:opacity 160ms ease}
+.seg button.on{opacity:1}
+
+.grp{margin-bottom:24px}
+.grp>h2{font-size:13px;color:var(--label2);padding:0 16px 7px}
+.grp>.foot{font-size:13px;line-height:1.45;color:var(--label2);padding:8px 16px 0}
+.list{background:var(--card);border-radius:12px;overflow:hidden}
+.row{display:flex;align-items:center;gap:11px;padding:11px 16px;min-height:44px;position:relative;width:100%;text-align:left}
+.row+.row::before{content:"";position:absolute;top:0;left:16px;right:0;height:.5px;background:var(--sep)}
+.row.tapme{transition:background 120ms ease}
+.row.tapme:active{background:var(--fill)}
+.row .t{flex:1;min-width:0;font-size:16px;word-break:break-word}
+.row .t small{display:block;font-size:13px;color:var(--label2);margin-top:1px}
+.row.done .t>span:first-child{text-decoration:line-through;color:var(--label2)}
+.chev{color:var(--label3);font-size:17px;flex:0 0 auto}
+.blank{padding:20px 16px;text-align:center;color:var(--label2);font-size:14px;line-height:1.5}
+.blank b{display:block;color:var(--label);font-size:15px;font-weight:600;margin-bottom:3px}
+
+.chk{flex:0 0 auto;width:26px;height:26px;border-radius:13px;border:1.5px solid var(--label3);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;
+  transition:transform 120ms var(--out),background 140ms ease,border-color 140ms ease}
+.chk:active{transform:scale(.86)}
+.chk.on{background:var(--green);border-color:var(--green)}
+.dayck{display:flex;gap:5px}
+.dayck button{width:30px;height:30px;border-radius:15px;background:var(--fill);font-size:12px;font-weight:600;color:var(--label2);
+  transition:transform 120ms var(--out),background 140ms ease,color 140ms ease}
+.dayck button:active{transform:scale(.86)}
+.dayck button.on{background:var(--green);color:#fff}
+
+.pl{font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap;background:var(--fill);color:var(--label2)}
+.pl.화정{background:rgba(0,122,255,.14);color:#0062CC}
+.pl.돌곶이{background:rgba(88,86,214,.14);color:#4744AB}
+.pl.회기{background:rgba(48,176,199,.16);color:#1E7E8F}
+.pl.공통{background:rgba(142,142,147,.16);color:#5C5C61}
+.pl.warn{background:rgba(255,59,48,.13);color:var(--red)}
+
+.board{display:grid;gap:10px}
+@media(min-width:900px){.board{grid-template-columns:repeat(5,1fr)}}
+.dayc{background:var(--card);border-radius:12px;overflow:hidden}
+.dayc.now{box-shadow:0 0 0 2px var(--blue)}
+.dayh{display:flex;align-items:baseline;padding:11px 14px 3px;gap:7px}
+.dayh b{font-size:15px;font-weight:600}
+.dayh .dt{font-size:12px;color:var(--label2)}
+.dayh .nowtag{font-size:11px;color:var(--blue);font-weight:600;margin-left:auto}
+.route{display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:7px 14px 10px;width:100%;text-align:left;
+  transition:background 120ms ease}
+.route:active{background:var(--fill)}
+.route .arrow{font-size:11px;color:var(--label3)}
+.route .setroute{font-size:12.5px;color:var(--blue)}
+.secline{font-size:11px;color:var(--label2);padding:6px 14px 3px;background:var(--fill);letter-spacing:.02em}
+.tsk{display:flex;align-items:center;gap:9px;padding:9px 14px;position:relative;transition:background 120ms ease}
+.tsk:active{background:var(--fill)}
+.tsk+.tsk::before{content:"";position:absolute;top:0;left:14px;right:0;height:.5px;background:var(--sep)}
+.tsk .tm{font-size:12px;color:var(--label2);font-variant-numeric:tabular-nums;flex:0 0 auto;min-width:44px}
+.tsk .tt{flex:1;font-size:14.5px;line-height:1.35;text-align:left}
+.tsk.done .tt{color:var(--label2);text-decoration:line-through}
+.dot{width:7px;height:7px;border-radius:4px;flex:0 0 auto;background:var(--blue)}
+.dot.t2{background:var(--orange)}.dot.t3{background:var(--gray)}
+.cnt{display:flex;gap:3px;padding:0 14px 8px}
+.pip{width:9px;height:9px;border-radius:3px;background:var(--fill2)}
+.pip.f{background:var(--blue)}.pip.x{background:var(--red)}
+.overhint{font-size:12px;color:var(--red);padding:0 14px 9px;line-height:1.4}
+
+.addwrap{background:var(--card);border-radius:12px;padding:14px}
+.addwrap input[type=text]{width:100%;background:var(--fill);border:0;border-radius:9px;padding:11px 13px;font-size:17px}
+.fields{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:12px}
+@media(max-width:700px){.fields{grid-template-columns:repeat(2,1fr)}}
+.fld label{display:block;font-size:12px;color:var(--label2);margin-bottom:5px}
+.fld select,.fld input[type=time]{width:100%;background:var(--fill);border:0;border-radius:9px;padding:9px 10px;font-size:15px;
+  -webkit-appearance:none;appearance:none}
+.fld select{padding-right:26px;
+  background-image:linear-gradient(45deg,transparent 50%,rgba(60,60,67,.5) 50%),linear-gradient(135deg,rgba(60,60,67,.5) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.addfoot{display:flex;align-items:center;gap:12px;margin-top:12px}
+.addfoot .hint{flex:1;font-size:12.5px;color:var(--label2);line-height:1.4}
+.addfoot button{background:var(--blue);color:#fff;border-radius:10px;padding:11px 22px;font-size:16px;font-weight:600;
+  transition:transform 120ms var(--out),opacity 140ms ease}
+.addfoot button:active{transform:scale(.96);opacity:.85}
+
+.m3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:640px){.m3{grid-template-columns:1fr}}
+.m{background:var(--card);border-radius:12px;padding:15px}
+.m label{font-size:13px;color:var(--label2)}
+.m .big{font-size:30px;font-weight:700;letter-spacing:-.03em;margin:2px 0 4px;font-variant-numeric:tabular-nums}
+.m p{font-size:12.5px;line-height:1.4;color:var(--label2)}
+.alert{background:rgba(255,59,48,.09);border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.45;color:var(--red)}
+.tip{background:rgba(0,122,255,.08);border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.5;color:#0A4FA0}
+.tip button{display:block;margin-top:10px;background:var(--blue);color:#fff;border-radius:9px;padding:9px 14px;font-size:14px;font-weight:600}
+.bigbtn{display:block;width:100%;background:var(--blue);color:#fff;border-radius:12px;padding:14px;font-size:17px;font-weight:600;
+  transition:transform 140ms var(--out),opacity 140ms ease}
+.bigbtn:active{transform:scale(.985);opacity:.85}
+.bigbtn.sec{background:var(--card);color:var(--blue);margin-top:9px}
+
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:60;opacity:0;will-change:opacity}
+.sheetwrap{position:fixed;left:0;right:0;bottom:0;z-index:61;display:flex;justify-content:center;
+  padding:0 8px calc(8px + env(safe-area-inset-bottom));pointer-events:none}
+.sheet{width:100%;max-width:430px;max-height:88vh;overflow-y:auto;background:var(--sheet);
+  -webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px);
+  border-radius:16px;padding:8px 20px 20px;box-shadow:var(--shadow);pointer-events:auto;will-change:transform;touch-action:none}
+.grab{width:36px;height:5px;border-radius:3px;background:var(--label3);margin:0 auto 12px}
+.sheet h3{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.sheet .sub{font-size:13px;color:var(--label2);margin-top:2px;line-height:1.45}
+.sheet .doc h4{font-size:15px;font-weight:600;margin-top:18px}
+.sheet .doc p{font-size:14px;color:var(--label2);line-height:1.5;margin-top:3px}
+.field{margin-top:16px}
+.field>label{display:block;font-size:13px;color:var(--label2);margin-bottom:6px}
+.field .note{font-size:12.5px;color:var(--label2);margin-top:7px;line-height:1.45}
+.field input[type=text],.field input[type=time]{width:100%;background:var(--fill);border:0;border-radius:10px;padding:11px 13px;font-size:17px}
+.opts{display:flex;gap:6px;flex-wrap:wrap}
+.opts button{flex:1;min-width:66px;padding:10px 4px;border-radius:9px;background:var(--fill);font-size:14px;font-weight:500;
+  transition:transform 120ms var(--out),background 140ms ease,color 140ms ease}
+.opts button:active{transform:scale(.95)}
+.opts button.on{background:var(--blue);color:#fff;font-weight:600}
+.seqbtn{position:relative}
+.seqbtn .n{position:absolute;top:3px;right:5px;font-size:10px;font-weight:700;opacity:.9}
+.sbtns{display:flex;gap:9px;margin-top:20px}
+.sbtns button{flex:1;padding:13px;border-radius:12px;font-size:17px;font-weight:600;background:var(--fill);
+  transition:transform 120ms var(--out),opacity 140ms ease}
+.sbtns button:active{transform:scale(.97);opacity:.8}
+.sbtns .p{background:var(--blue);color:#fff}
+.danger{width:100%;margin-top:10px;padding:13px;border-radius:12px;font-size:17px;font-weight:600;color:var(--red);
+  background:rgba(255,59,48,.09);transition:transform 120ms var(--out),background 160ms ease,color 160ms ease}
+.danger:active{transform:scale(.98)}
+.danger.armed{background:var(--red);color:#fff}
+.share{width:100%;height:300px;background:var(--fill);border:0;border-radius:10px;padding:13px;font-size:13px;line-height:1.6;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;resize:none;margin-top:14px}
+
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));translate:-50% 0;z-index:70;
+  background:rgba(28,28,30,.92);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);color:#fff;
+  border-radius:14px;padding:12px 14px 12px 18px;display:flex;align-items:center;gap:14px;font-size:15px;max-width:calc(100% - 32px);
+  box-shadow:0 10px 30px rgba(0,0,0,.25);transform:translateY(150%);transition:transform 260ms var(--out),opacity 200ms ease;opacity:0}
+.toast.on{transform:translateY(0);opacity:1}
+.toast button{color:#0A84FF;font-weight:600;font-size:15px;white-space:nowrap}
+.banner{background:var(--orange);color:#000;font-size:13px;padding:8px 16px;text-align:center;font-weight:500}
+@media(prefers-reduced-transparency:reduce){.nav{background:var(--bg);backdrop-filter:none}.sheet{background:var(--card);backdrop-filter:none}}
+@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+</style>
+
+<div class="nav" id="nav"><div class="wrap navin">
+  <span class="navtitle">주간 동선 · 투두</span>
+  <button class="info" id="help" aria-label="사용법">?</button>
+  <button class="navbtn navsp" id="syncBtn">연결</button>
+  <button class="navbtn" id="shareBtn">공유용 정리</button>
+  <button class="navbtn" id="exp">내보내기</button>
+  <button class="navbtn" id="imp">불러오기</button>
+  <input type="file" id="file" accept="application/json" class="hide">
+</div></div>
+<div class="banner hide" id="nostore">저장이 안 되는 환경입니다. 작업을 마치면 <b>내보내기</b>로 파일을 받아두세요.</div>
+
+<div class="wrap">
+  <div class="lt">
+    <h1>주간 동선 · 투두</h1>
+    <div class="wk"><button class="step" id="prev" aria-label="이전 주">‹</button>
+      <span class="mono" id="wklab">—</span>
+      <button class="step" id="next" aria-label="다음 주">›</button>
+      <span class="today hide" id="thisWeek">이번 주</span></div>
+  </div>
+
+  <div class="seg" id="seg"><div class="thumb" id="thumb"></div>
+    <button class="on">요일별</button><button>지점별</button><button>금요일 결산</button></div>
+
+  <div id="tab-day">
+    <div class="grp"><div class="board" id="board"></div>
+      <div class="foot">요일 아래 지점 배지를 누르면 그날 동선을 정합니다. 회의처럼 시간이 있는 건 위쪽에 시간순으로, 나머지 할 일은 그 아래에 붙습니다.</div></div>
+
+    <div class="grp"><h2>요일을 안 정한 일</h2><div class="list" id="unassigned"></div>
+      <div class="foot">요일이 정해지기 전까지는 어느 날에도 잡히지 않습니다.</div></div>
+
+    <div class="grp"><h2>매일 반복 — 그날 했는지만 체크</h2><div class="list" id="dailyList"></div></div>
+  </div>
+
+  <div id="tab-place" class="hide">
+    <div class="grp"><h2>할 일 넣기</h2>
+      <div class="addwrap">
+        <input type="text" id="nTitle" placeholder="할 일 이름" enterkeyhint="done">
+        <div class="fields">
+          <div class="fld"><label for="nPlace">지점</label><select id="nPlace">
+            <option value="공통">3지점 공통</option><option value="화정">화정</option><option value="돌곶이">돌곶이</option><option value="회기">회기</option></select></div>
+          <div class="fld"><label for="nKind">종류</label><select id="nKind">
+            <option value="todo">할 일</option><option value="event">일정·회의</option><option value="daily">매일 반복</option></select></div>
+          <div class="fld"><label for="nTier">우선순위</label><select id="nTier">
+            <option value="1">무조건 한다</option><option value="2">여유되면 한다</option><option value="3">이번 주엔 안 한다</option></select></div>
+          <div class="fld" id="wDay"><label for="nDay">요일</label><select id="nDay">
+            <option value="">아직 안 정함</option><option value="0">월요일</option><option value="1">화요일</option><option value="2">수요일</option><option value="3">목요일</option><option value="4">금요일</option></select></div>
+          <div class="fld hide" id="wTime"><label for="nTime">시간</label><input type="time" id="nTime"></div>
+        </div>
+        <div class="addfoot"><p class="hint" id="kindHint"></p><button id="addBtn">추가</button></div>
+      </div>
+      <div class="foot">이름을 치고 엔터를 누르면 계속 추가됩니다. 지점을 고르면 공유용 정리에 그 지점 아래로 들어갑니다.</div>
+    </div>
+    <div id="lanes"></div>
+  </div>
+
+  <div id="tab-review" class="hide">
+    <div class="grp"><h2>이번 주 결과</h2>
+      <div class="m3">
+        <div class="m"><label>‘무조건’ 달성률</label><div class="big" id="rCore">—</div><p>3주 연속 100%가 아니면 무조건 할 일을 너무 많이 잡은 겁니다.</p></div>
+        <div class="m"><label>생각보다 오래 걸린 비율</label><div class="big" id="rSlow">—</div><p>절반을 넘으면 하루에 얹는 개수가 현실보다 많습니다.</p></div>
+        <div class="m"><label>계속 끊긴 비율</label><div class="big" id="rBusy">—</div><p>일이 어려운 게 아니라 자리를 못 지킨 겁니다. 개수보다 이걸 먼저 보세요.</p></div>
+      </div>
+      <div class="foot" id="reviewHint"></div>
+      <div id="advice" style="margin-top:12px"></div>
+      <div id="carryAlert" style="margin-top:12px"></div></div>
+    <div class="grp"><h2>하루에 얹는 할 일 개수</h2>
+      <div class="list"><div class="row"><span class="t">한도<small>회의·매일 반복은 빼고 셉니다</small></span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="chk" data-cap="-1" style="border-color:var(--label3)">−</button>
+          <span class="mono" id="capV" style="min-width:34px;text-align:center"></span>
+          <button class="chk" data-cap="1" style="border-color:var(--label3)">＋</button></div></div></div></div>
+    <div class="grp"><button class="bigbtn" id="rollBtn">다음 주로 넘기기</button>
+      <div class="foot">넘기면 못 끝낸 일이 다음 주로 옮겨지고 밀린 주차가 1 올라갑니다. 동선은 비워진 채 시작합니다.</div></div>
+    <div class="grp"><h2>지난 기록</h2><div class="list" id="hist"></div></div>
+  </div>
+</div>
+<div id="host"></div>
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="toastAct">되돌리기</button></div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const DAYS=['월','화','수','목','금'],KEY='weekplan-v3';
+const PLACES=['공통','화정','돌곶이','회기'];
+const SPOTS=['화정','돌곶이','회기','출장','외부회의','휴무'];
+const KINDS={todo:'할 일',event:'일정·회의',daily:'매일 반복'};
+const KINDHINT={todo:'요일에 얹어두고 끝나면 체크하는 일입니다.',
+  event:'회의·미팅처럼 시간이 정해진 일입니다. 한도에 세지 않습니다.',
+  daily:'매일 도는 일입니다. 요일별로 했는지만 체크합니다.'};
+const TIERS={1:'무조건',2:'여유되면',3:'안 함'};
+const TIERLONG={1:'무조건 한다',2:'여유되면 한다',3:'이번 주엔 안 한다'};
+const FEEL={fast:'생각보다 빨리',same:'예상과 비슷',slow:'훨씬 오래'};
+const BUSY={few:'거의 안 끊김',some:'몇 번 끊김',many:'계속 끊김'};
+let canStore=true,S=null,undoT=null;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tap=()=>{try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}};
+
+function spring(from,to,vel,onU,onEnd,response=.4,damping=1){
+  let x=from,v=vel,last=performance.now();
+  const w=2*Math.PI/response,k=w*w,c=2*damping*w;
+  (function f(t){const dt=Math.min((t-last)/1000,1/30);last=t;
+    v+=(-k*(x-to)-c*v)*dt;x+=v*dt;onU(x);
+    if(Math.abs(x-to)<.4&&Math.abs(v)<10){onU(to);onEnd&&onEnd();return}
+    requestAnimationFrame(f)})(last)}
+const project=(v,d=.998)=>(v/1000)*d/(1-d);
+
+function mondayOf(d){const x=new Date(d),w=x.getDay();x.setDate(x.getDate()+(w===0?1:1-w));x.setHours(0,0,0,0);return x}
+const key=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const dOf=x=>{const a=new Date(S.cur+'T00:00:00');a.setDate(a.getDate()+x);return a};
+function wkTitle(){const a=new Date(S.cur+'T00:00:00');
+  return (a.getMonth()+1)+'월 '+(Math.floor((a.getDate()-1)/7)+1)+'주차'}
+function label(){const a=dOf(0),b=dOf(4);
+  return wkTitle()+' · '+(a.getMonth()+1)+'/'+a.getDate()+'–'+(b.getMonth()+1)+'/'+b.getDate()}
+const shift=(k,n)=>{const a=new Date(k+'T00:00:00');a.setDate(a.getDate()+7*n);return key(a)};
+const blank=()=>({cap:4,weeks:{},cur:key(mondayOf(new Date())),hist:[]});
+function week(){if(!S.weeks[S.cur])S.weeks[S.cur]={items:[],route:[[],[],[],[],[]]};
+  if(!S.weeks[S.cur].route)S.weeks[S.cur].route=[[],[],[],[],[]];return S.weeks[S.cur]}
+const find=id=>week().items.find(i=>i.id===id);
+const uid=()=>Math.random().toString(36).slice(2,9);
+const todoCount=d=>week().items.filter(i=>i.kind==='todo'&&i.day===d&&!i.done).length;
+const isThisWeek=()=>S.cur===key(mondayOf(new Date()));
+const todayIdx=()=>{const d=(new Date().getDay()+6)%7;return d<5?d:-1};
+const hm=t=>{if(!t)return'';const[h,m]=t.split(':').map(Number);
+  return (h<12?'오전 ':'오후 ')+(h%12||12)+(m?':'+String(m).padStart(2,'0'):'시')};
+
+let mode='none';
+const hasCS=!!(window.storage&&window.storage.get);
+async function readRaw(){
+  if(hasCS){
+    try{const r=await window.storage.get(KEY);mode='claude';return r?r.value:null}
+    catch(e){try{await window.storage.set(KEY,'{}');mode='claude';return null}catch(e2){}}}
+  try{const t=localStorage.getItem(KEY);localStorage.setItem(KEY+'_p','1');localStorage.removeItem(KEY+'_p');mode='local';return t}
+  catch(e){mode='none';return null}
+}
+async function writeRaw(v){
+  if(mode==='claude'){try{await window.storage.set(KEY,v);return true}catch(e){}}
+  try{localStorage.setItem(KEY,v);if(mode!=='claude')mode='local';return true}catch(e){}
+  return false;
+}
+async function load(){
+  let raw=null;try{raw=await readRaw()}catch(e){}
+  try{S=raw?JSON.parse(raw):blank()}catch(e){S=blank()}
+  if(!S||!S.cap)S=blank();
+  canStore=mode!=='none';
+  if(!canStore)$('#nostore').classList.remove('hide');
+}
+let sT;function save(){clearTimeout(sT);sT=setTimeout(async()=>{
+  S.updated=new Date().toISOString();
+  if(canStore){const ok=await writeRaw(JSON.stringify(S));
+    if(!ok){canStore=false;$('#nostore').classList.remove('hide')}}
+  if(cloud)schedulePush();},250)}
+
+function render(){
+  $('#wklab').textContent=label();
+  $('#thisWeek').classList.toggle('hide',!isThisWeek());
+  board();unassigned();daily();lanes();review();save();
+}
+
+function board(){
+  const ti=isThisWeek()?todayIdx():-1,cap=S.cap;
+  $('#board').innerHTML=DAYS.map((d,x)=>{
+    const dt=dOf(x),route=week().route[x]||[];
+    const ev=week().items.filter(i=>i.kind==='event'&&i.day===x).sort((a,b)=>(a.time||'99').localeCompare(b.time||'99'));
+    const td=week().items.filter(i=>i.kind==='todo'&&i.day===x);
+    const n=todoCount(x),over=n>cap;
+    let pips='';for(let k=0;k<Math.max(cap,n);k++)pips+='<span class="pip '+(k<n?(k<cap?'f':'x'):'')+'"></span>';
+    return '<div class="dayc '+(x===ti?'now':'')+'"><div class="dayh"><b>'+d+'요일</b>'+
+      '<span class="dt">'+(dt.getMonth()+1)+'/'+dt.getDate()+'</span>'+(x===ti?'<span class="nowtag">오늘</span>':'')+'</div>'+
+      '<button class="route" data-route="'+x+'">'+(route.length?route.map((p,k)=>
+        (k?'<span class="arrow">→</span>':'')+'<span class="pl '+p+'">'+p+'</span>').join('')
+        :'<span class="setroute">동선 정하기</span>')+'</button>'+
+      (ev.length?'<div class="secline">일정</div>'+ev.map(i=>
+        '<div class="tsk '+(i.done?'done':'')+'"><span class="tm">'+(i.time?hm(i.time):'—')+'</span>'+
+        '<button class="tt" data-edit="'+i.id+'">'+esc(i.title)+'</button>'+
+        '<span class="pl '+i.place+'">'+i.place+'</span>'+
+        '<button class="chk '+(i.done?'on':'')+'" data-fin="'+i.id+'" style="width:24px;height:24px;font-size:12px" aria-label="완료">'+(i.done?'✓':'')+'</button></div>').join(''):'')+
+      '<div class="secline">할 일</div><div class="cnt">'+pips+'</div>'+
+      (over?'<div class="overhint">하루 한도 '+cap+'개를 넘었습니다. 옮기거나 ‘안 함’으로 내리세요.</div>':'')+
+      (td.length?td.map(i=>'<div class="tsk '+(i.done?'done':'')+'"><span class="dot t'+i.tier+'"></span>'+
+        '<button class="tt" data-edit="'+i.id+'">'+esc(i.title)+'</button>'+
+        '<span class="pl '+i.place+'">'+i.place+'</span>'+
+        '<button class="chk '+(i.done?'on':'')+'" data-fin="'+i.id+'" style="width:24px;height:24px;font-size:12px" aria-label="완료">'+(i.done?'✓':'')+'</button></div>').join('')
+        :'<div class="blank" style="padding:12px 10px;font-size:13px">비어 있음</div>')+'</div>';
+  }).join('');
+}
+const metaOf=i=>[TIERLONG[i.tier],KINDS[i.kind],i.day!=null?DAYS[i.day]+'요일':(i.kind!=='daily'?'요일 안 정함':null),i.time?hm(i.time):null].filter(Boolean).join(' · ');
+
+function unassigned(){
+  const L=week().items.filter(i=>i.kind!=='daily'&&i.day==null);
+  $('#unassigned').innerHTML=L.length?L.map(i=>
+    '<button class="row tapme" data-edit="'+i.id+'"><span class="pl '+i.place+'">'+i.place+'</span>'+
+    '<span class="t"><span>'+esc(i.title)+'</span><small>'+metaOf(i)+'</small></span><span class="chev">›</span></button>').join('')
+    :'<div class="blank">요일을 안 정한 일이 없습니다.</div>';
+}
+function daily(){
+  const L=week().items.filter(i=>i.kind==='daily');
+  $('#dailyList').innerHTML=L.length?L.map(i=>{i.checks=i.checks||[0,0,0,0,0];
+    return '<div class="row"><span class="pl '+i.place+'">'+i.place+'</span>'+
+      '<span class="t tapme" data-edit="'+i.id+'" style="cursor:pointer">'+esc(i.title)+'</span><div class="dayck">'+
+      DAYS.map((d,x)=>'<button data-ck="'+i.id+'" data-d="'+x+'" class="'+(i.checks[x]?'on':'')+'" aria-label="'+d+'요일">'+d+'</button>').join('')+
+      '</div></div>'}).join('')
+    :'<div class="blank"><b>매일 도는 일을 넣어보세요</b>미스DB 확인, 마감매출 점검처럼 안 하면 그날 사고가 나는 일입니다.</div>';
+}
+function lanes(){
+  $('#lanes').innerHTML=PLACES.map(p=>{
+    const L=week().items.filter(i=>i.place===p);
+    return '<div class="grp"><h2>'+(p==='공통'?'3지점 공통':p)+'</h2><div class="list">'+
+      (L.length?L.map(i=>'<button class="row tapme '+(i.done?'done':'')+'" data-edit="'+i.id+'">'+
+        '<span class="t"><span>'+esc(i.title)+'</span><small>'+metaOf(i)+(i.carry?' · '+i.carry+'주 밀림':'')+'</small></span>'+
+        '<span class="chev">›</span></button>').join(''):'<div class="blank">아직 없습니다.</div>')+'</div></div>'}).join('');
+}
+function review(){
+  $('#capV').textContent=S.cap+'개';
+  const done=week().items.filter(i=>i.kind!=='daily'&&i.done&&i.feel);
+  const t1=week().items.filter(i=>i.tier==1&&i.kind!=='daily');
+  const core=t1.length?Math.round(t1.filter(i=>i.done).length/t1.length*100):null;
+  const slow=done.length?Math.round(done.filter(i=>i.feel==='slow').length/done.length*100):null;
+  const busy=done.length?Math.round(done.filter(i=>i.busy==='many').length/done.length*100):null;
+  $('#rCore').textContent=core==null?'—':core+'%';
+  $('#rSlow').textContent=slow==null?'—':slow+'%';
+  $('#rBusy').textContent=busy==null?'—':busy+'%';
+  $('#reviewHint').textContent=done.length?'끝낸 일 '+done.length+'개의 기록으로 계산했습니다.'
+    :'아직 기록이 없습니다. 일을 끝낼 때마다 두 가지만 골라두면 여기에 숫자가 나옵니다.';
+  let tip='';
+  if(busy!=null&&busy>=50)tip='절반 이상이 계속 끊긴 채 진행됐습니다. 개수를 줄이기 전에, 하루 한 번이라도 방해받지 않는 시간을 만들 수 있는지부터 보세요.||';
+  else if(slow!=null&&slow>=50&&S.cap>1)tip='끝낸 일의 절반 이상이 생각보다 오래 걸렸습니다. 하루에 얹는 개수가 현실보다 많습니다.|하루 '+(S.cap-1)+'개로 줄이기|-1';
+  else if(core===100&&slow!=null&&slow<30&&done.length>=3)tip='무조건 할 일을 다 끝냈고 예상도 잘 맞았습니다. 한 개 늘려볼 만합니다.|하루 '+(S.cap+1)+'개로 늘리기|1';
+  const p=tip.split('|');
+  $('#advice').innerHTML=tip?'<div class="tip">'+p[0]+(p[1]?'<button data-cap="'+p[2]+'">'+p[1]+'</button>':'')+'</div>':'';
+  const risk=week().items.filter(i=>(i.carry||0)>=3&&!i.done);
+  $('#carryAlert').innerHTML=risk.length?'<div class="alert"><b>3주째 밀리고 있습니다 — 이제 결정하세요</b><br>'+
+    risk.map(i=>'· '+esc(i.title)).join('<br>')+'<br><br>버리거나, 남에게 넘기거나, 날짜를 박으세요.</div>':'';
+  $('#hist').innerHTML=S.hist.length?S.hist.slice(-8).reverse().map(h=>
+    '<div class="row"><span class="t" style="font-size:15px">'+h.title+'</span><span class="t" style="flex:0 0 auto;font-size:13px;color:var(--label2)">무조건 '+h.core+' · 오래 '+h.slow+'</span></div>').join('')
+    :'<div class="blank">주가 끝나고 “다음 주로 넘기기”를 누르면 여기에 쌓입니다.</div>';
+}
+
+/* 공유용 텍스트 */
+function shareText(){
+  const T=wkTitle(),W=week();
+  let s='['+T+' 수현매니저 동선 공유]\n';
+  DAYS.forEach((d,x)=>{const r=W.route[x]||[];s+=dOf(x).getDate()+', '+d+' / '+(r.length?r.join('to'):'—')+'\n'});
+  s+='\n['+T+' 수현매니저 동선]\n';
+  PLACES.forEach(p=>{
+    const L=W.items.filter(i=>i.place===p&&i.tier<3);
+    if(!L.length)return;
+    s+='\n<'+(p==='공통'?'3지점 공통':p)+'>\n';
+    L.filter(i=>i.kind==='event').sort((a,b)=>(a.day-b.day)||(a.time||'').localeCompare(b.time||''))
+      .forEach(i=>{const dt=i.day!=null?dOf(i.day):null;
+        s+='-'+(dt?(dt.getMonth()+1)+'/'+dt.getDate()+' '+DAYS[i.day]+'요일 ':'')+(i.time?hm(i.time)+' ':'')+i.title+'\n'});
+    L.filter(i=>i.kind!=='event').forEach(i=>{s+='-'+i.title+'\n'});
+  });
+  return s;
+}
+
+function toast(msg,action){
+  clearTimeout(undoT);$('#toastMsg').textContent=msg;
+  $('#toastAct').classList.toggle('hide',!action);
+  $('#toastAct').onclick=()=>{action&&action();hideToast()};
+  $('#toast').classList.add('on');undoT=setTimeout(hideToast,5000)}
+const hideToast=()=>$('#toast').classList.remove('on');
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button,[data-edit]');if(!b)return;
+  if(b.dataset.cap){S.cap=Math.max(1,S.cap+ +b.dataset.cap);tap();render();return}
+  if(b.dataset.route!==undefined){routeSheet(+b.dataset.route);return}
+  if(b.dataset.ck!==undefined&&b.dataset.d!==undefined){const i=find(b.dataset.ck);i.checks[+b.dataset.d]^=1;tap();render();return}
+  if(b.dataset.fin){const i=find(b.dataset.fin);if(i.done){i.done=false;i.feel=null;i.busy=null;render()}
+    else if(i.kind==='event'){i.done=true;i.feel='same';i.busy='some';tap();render()}else finishSheet(i);return}
+  if(b.dataset.edit){editSheet(find(b.dataset.edit));return}
+});
+
+function syncKind(){const v=$('#nKind').value;
+  $('#wDay').classList.toggle('hide',v==='daily');
+  $('#wTime').classList.toggle('hide',v!=='event');
+  $('#kindHint').textContent=KINDHINT[v]}
+$('#nKind').addEventListener('change',syncKind);syncKind();
+
+$('#addBtn').onclick=()=>{
+  const t=$('#nTitle').value.trim();if(!t){$('#nTitle').focus();return}
+  const k=$('#nKind').value,dv=$('#nDay').value;
+  week().items.push({id:uid(),title:t,place:$('#nPlace').value,kind:k,tier:+$('#nTier').value,
+    day:(k!=='daily'&&dv!=='')?+dv:null,time:k==='event'?$('#nTime').value:null,
+    done:false,feel:null,busy:null,carry:0,checks:[0,0,0,0,0]});
+  $('#nTitle').value='';$('#nTitle').focus();tap();render();toast('“'+t+'” 추가됨',null)};
+$('#nTitle').addEventListener('keydown',e=>{if(e.key==='Enter')$('#addBtn').click()});
+
+const segBtns=$$('#seg button'),thumb=$('#thumb');
+function seg(i){segBtns.forEach((b,x)=>b.classList.toggle('on',x===i));
+  thumb.style.transform='translateX('+i*100+'%)';
+  ['day','place','review'].forEach((t,x)=>$('#tab-'+t).classList.toggle('hide',x!==i))}
+segBtns.forEach((b,i)=>b.onclick=()=>seg(i));
+$('#prev').onclick=()=>{S.cur=shift(S.cur,-1);render()};
+$('#next').onclick=()=>{S.cur=shift(S.cur,1);render()};
+addEventListener('scroll',()=>$('#nav').classList.toggle('scrolled',scrollY>26),{passive:true});
+
+function present(html,mount){
+  $('#host').innerHTML='<div class="scrim" id="scrim"></div><div class="sheetwrap"><div class="sheet" id="sh"><div class="grab"></div>'+html+'</div></div>';
+  const sh=$('#sh'),scrim=$('#scrim');
+  const H=()=>sh.getBoundingClientRect().height+20;
+  let y=H();const set=v=>{y=v;sh.style.transform='translateY('+v+'px)';scrim.style.opacity=String(Math.max(0,1-v/H()))};
+  set(H());requestAnimationFrame(()=>spring(H(),0,0,set,null,.4,.86));
+  const close=v=>spring(y,H(),v||0,set,()=>$('#host').innerHTML='',.35,1);
+  scrim.onclick=()=>close();
+  let sy=0,y0=0,hist=[],drag=false;
+  sh.addEventListener('pointerdown',e=>{if(e.target.closest('input,button,select,textarea'))return;
+    sh.setPointerCapture(e.pointerId);drag=true;sy=e.clientY;y0=y;hist=[[e.clientY,performance.now()]]});
+  sh.addEventListener('pointermove',e=>{if(!drag)return;let d=e.clientY-sy;
+    if(y0+d<0){const o=-(y0+d);d+=o-(o*H()*.55)/(H()+.55*o)}
+    set(Math.max(-40,y0+d));hist.push([e.clientY,performance.now()]);if(hist.length>5)hist.shift()});
+  const up=()=>{if(!drag)return;drag=false;
+    const a=hist[0],b=hist[hist.length-1],dt=(b[1]-a[1])/1000,v=dt>0?(b[0]-a[0])/dt:0;
+    (y+project(v)>H()*.4||v>620)?close(v):spring(y,0,v,set,null,.4,.86)};
+  sh.addEventListener('pointerup',up);sh.addEventListener('pointercancel',up);
+  addEventListener('keydown',function k(e){if(e.key==='Escape'){close();removeEventListener('keydown',k)}});
+  mount(close);return close}
+
+function routeSheet(x){
+  let r=[...(week().route[x]||[])];
+  const dt=dOf(x);
+  const draw=()=>{$('#host').querySelectorAll('[data-spot]').forEach(b=>{
+    const k=r.indexOf(b.dataset.spot);
+    b.classList.toggle('on',k>=0);
+    b.querySelector('.n').textContent=k>=0?(k+1):''});
+    $('#rPreview').textContent=r.length?r.join(' → '):'아직 없음'};
+  present('<h3>'+DAYS[x]+'요일 동선</h3><div class="sub">'+(dt.getMonth()+1)+'월 '+dt.getDate()+'일 · 가는 순서대로 누르세요. 다시 누르면 빠집니다.</div>'+
+    '<div class="field"><div class="opts">'+SPOTS.map(p=>
+      '<button class="seqbtn" data-spot="'+p+'">'+p+'<span class="n"></span></button>').join('')+'</div>'+
+      '<p class="note" id="rPreview"></p></div>'+
+    '<div class="sbtns"><button id="rC">취소</button><button class="p" id="rS">저장</button></div>',
+  close=>{
+    draw();
+    $('#host').querySelectorAll('[data-spot]').forEach(b=>b.onclick=()=>{
+      const p=b.dataset.spot,k=r.indexOf(p);
+      if(k>=0)r.splice(k,1);else r.push(p);
+      tap();draw()});
+    $('#rC').onclick=()=>close();
+    $('#rS').onclick=()=>{week().route[x]=r;tap();close();setTimeout(render,60)}})}
+
+function finishSheet(item){
+  let feel='same',busy='some';
+  const o=(g,v,l,on)=>'<button data-g="'+g+'" data-v="'+v+'" class="'+(on?'on':'')+'">'+l+'</button>';
+  present('<h3>다 했어요</h3><div class="sub">'+esc(item.title)+'<br>숫자 대신 느낌만 고르면 됩니다.</div>'+
+    '<div class="field"><label>예상이랑 비교하면</label><div class="opts">'+
+      Object.keys(FEEL).map(k=>o('feel',k,FEEL[k],feel===k)).join('')+'</div></div>'+
+    '<div class="field"><label>하는 중에</label><div class="opts">'+
+      Object.keys(BUSY).map(k=>o('busy',k,BUSY[k],busy===k)).join('')+'</div>'+
+      '<p class="note">전화·카톡·호출로 손을 뗐는지입니다. 예상이 빗나가는 진짜 원인인 경우가 많습니다.</p></div>'+
+    '<div class="sbtns"><button id="mC">취소</button><button class="p" id="mS">저장</button></div>',
+  close=>{
+    $('#host').querySelectorAll('.opts button').forEach(b=>b.onclick=()=>{
+      b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+      if(b.dataset.g==='feel')feel=b.dataset.v;else busy=b.dataset.v;tap()});
+    $('#mC').onclick=()=>close();
+    $('#mS').onclick=()=>{item.done=true;item.feel=feel;item.busy=busy;tap();close();
+      setTimeout(()=>{render();toast('끝낸 걸로 기록했습니다',null)},60)}})}
+
+function editSheet(item){
+  if(!item)return;
+  const o=(g,v,l,on)=>'<button data-g="'+g+'" data-v="'+v+'" class="'+(on?'on':'')+'">'+l+'</button>';
+  present('<h3>고치기</h3>'+
+    '<div class="field"><label>이름</label><input type="text" id="eT" value="'+esc(item.title)+'"></div>'+
+    '<div class="field"><label>지점</label><div class="opts">'+
+      PLACES.map(p=>o('place',p,p==='공통'?'공통':p,item.place===p)).join('')+'</div></div>'+
+    '<div class="field"><label>종류</label><div class="opts">'+
+      Object.keys(KINDS).map(k=>o('kind',k,KINDS[k],item.kind===k)).join('')+'</div>'+
+      '<p class="note" id="eHint">'+KINDHINT[item.kind]+'</p></div>'+
+    '<div class="field"><label>우선순위</label><div class="opts">'+
+      [1,2,3].map(n=>o('tier',n,TIERS[n],item.tier==n)).join('')+'</div></div>'+
+    '<div class="field '+(item.kind==='daily'?'hide':'')+'" id="fDay"><label>요일</label><div class="opts">'+
+      o('day','','미정',item.day==null)+DAYS.map((d,x)=>o('day',x,d,item.day===x)).join('')+'</div></div>'+
+    '<div class="field '+(item.kind==='event'?'':'hide')+'" id="fTime"><label>시간</label>'+
+      '<input type="time" id="eTime" value="'+(item.time||'')+'"></div>'+
+    '<div class="sbtns"><button id="eC">취소</button><button class="p" id="eS">저장</button></div>'+
+    '<button class="danger" id="eD">삭제</button>',
+  close=>{
+    let place=item.place,kind=item.kind,tier=item.tier,day=item.day;
+    $('#host').querySelectorAll('.opts button').forEach(b=>b.onclick=()=>{
+      const g=b.dataset.g,v=b.dataset.v;
+      b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+      if(g==='place')place=v;
+      if(g==='kind'){kind=v;$('#fDay').classList.toggle('hide',v==='daily');$('#fTime').classList.toggle('hide',v!=='event');$('#eHint').textContent=KINDHINT[v]}
+      if(g==='tier')tier=+v;
+      if(g==='day')day=v===''?null:+v;
+      tap()});
+    $('#eC').onclick=()=>close();
+    $('#eS').onclick=()=>{const t=$('#eT').value.trim();if(!t){$('#eT').focus();return}
+      item.title=t;item.place=place;item.kind=kind;item.tier=tier;
+      item.day=kind==='daily'?null:day;item.time=kind==='event'?$('#eTime').value:null;
+      if(kind==='daily')item.checks=item.checks||[0,0,0,0,0];
+      tap();close();setTimeout(render,60)};
+    let armed=false,at;
+    $('#eD').onclick=ev=>{const btn=ev.currentTarget;
+      if(!armed){armed=true;btn.classList.add('armed');btn.textContent='한 번 더 누르면 삭제';tap();
+        at=setTimeout(()=>{armed=false;btn.classList.remove('armed');btn.textContent='삭제'},3000);return}
+      clearTimeout(at);
+      const idx=week().items.findIndex(i=>i.id===item.id),copy={...item};
+      week().items.splice(idx,1);tap();close();
+      setTimeout(()=>{render();toast('“'+copy.title+'” 삭제됨',()=>{week().items.splice(idx,0,copy);render()})},60)}})}
+
+$('#shareBtn').onclick=()=>present(
+  '<h3>공유용 정리</h3><div class="sub">주간 공유 형식 그대로 만들었습니다. ‘이번 주엔 안 함’으로 둔 일은 빠집니다.</div>'+
+  '<textarea class="share" id="shTxt" readonly></textarea>'+
+  '<div class="sbtns"><button id="shC">닫기</button><button class="p" id="shK">복사</button></div>',
+  close=>{
+    $('#shTxt').value=shareText();
+    $('#shC').onclick=()=>close();
+    $('#shK').onclick=async()=>{const t=$('#shTxt');
+      try{await navigator.clipboard.writeText(t.value)}catch(e){t.removeAttribute('readonly');t.select();document.execCommand('copy');t.setAttribute('readonly','')}
+      tap();close();setTimeout(()=>toast('복사했습니다',null),60)}});
+
+$('#help').onclick=()=>present(
+  '<h3>어떻게 쓰나요</h3><div class="sub">주간 동선 공유를 그대로 옮긴 구조입니다.</div><div class="doc">'+
+  '<h4>먼저 동선을 정합니다</h4><p>요일 카드에서 지점 배지를 누르고, 그날 가는 순서대로 고르세요. 돌곶이 갔다가 회기면 두 번 누르면 됩니다.</p>'+
+  '<h4>할 일은 지점에 붙습니다</h4><p>3지점 공통·화정·돌곶이·회기 중 하나를 고릅니다. 지점별 탭에서 그 지점 일만 모아 볼 수 있고, 공유용 정리도 이 순서로 나옵니다.</p>'+
+  '<h4>회의는 시간이, 할 일은 개수가 붙습니다</h4><p>회의·미팅은 시간을 넣으면 요일 카드 위쪽에 시간순으로 붙습니다. 나머지 할 일은 하루 몇 개까지 얹을지만 정해두고, 넘으면 빨갛게 알려줍니다. 시간 견적은 내지 않습니다 — 현장에서 즉답하며 도는 하루에는 맞을 수가 없으니까요.</p>'+
+  '<h4>우선순위는 셋 중 하나입니다</h4><p>무조건 한다 / 여유되면 한다 / 이번 주엔 안 한다. ‘안 한다’로 둔 일은 목록에는 남지만 공유용 정리에서는 빠집니다.</p>'+
+  '<h4>끝낼 때는 두 번만 누릅니다</h4><p>예상보다 빨랐는지 오래였는지, 하는 중에 끊겼는지. 이 두 가지가 다음 주 개수를 정합니다.</p>'+
+  '<h4>공유용 정리</h4><p>위쪽 “공유용 정리”를 누르면 동선과 지점별 목록이 공유하는 형식 그대로 만들어집니다. 복사해서 붙여넣으면 됩니다.</p></div>'+
+  '<div class="sbtns"><button class="p" id="hC">알겠습니다</button></div>',
+  close=>{$('#hC').onclick=()=>close()});
+
+$('#rollBtn').onclick=()=>{
+  const done=week().items.filter(i=>i.kind!=='daily'&&i.done&&i.feel);
+  const t1=week().items.filter(i=>i.tier==1&&i.kind!=='daily');
+  S.hist.push({title:wkTitle(),
+    core:t1.length?Math.round(t1.filter(i=>i.done).length/t1.length*100)+'%':'—',
+    slow:done.length?Math.round(done.filter(i=>i.feel==='slow').length/done.length*100)+'%':'—'});
+  const carry=week().items.filter(i=>!i.done&&i.kind!=='daily').map(i=>({...i,id:uid(),carry:(i.carry||0)+1,time:i.kind==='event'?null:i.time,day:i.kind==='event'?null:i.day}));
+  const dl=week().items.filter(i=>i.kind==='daily').map(i=>({...i,id:uid(),checks:[0,0,0,0,0]}));
+  const nk=shift(S.cur,1);
+  S.weeks[nk]={items:[...(S.weeks[nk]?S.weeks[nk].items:[]),...carry,...dl],route:[[],[],[],[],[]]};
+  S.cur=nk;tap();render();seg(0);scrollTo({top:0,behavior:'smooth'});
+  toast(carry.length+'개를 다음 주로 넘겼습니다',null)};
+$('#exp').onclick=()=>{const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='주간동선-'+S.cur+'.json';a.click();URL.revokeObjectURL(a.href);
+  toast('파일을 내려받았습니다',null)};
+$('#imp').onclick=()=>$('#file').click();
+$('#file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.cap)throw 0;S=d;render();toast('불러왔습니다',null)}
+  catch(x){toast('읽을 수 없는 파일입니다',null)}};r.readAsText(f);e.target.value=''};
+
+/* ---------- Supabase 동기화 ---------- */
+const CK='weekplan-cloud';
+let cloud=null,tok=null,pT=null,busy=false;
+function loadCloud(){try{cloud=JSON.parse(localStorage.getItem(CK)||'null')}catch(e){cloud=null}}
+function saveCloud(){try{cloud?localStorage.setItem(CK,JSON.stringify(cloud)):localStorage.removeItem(CK)}catch(e){}}
+function syncUI(t){$('#syncBtn').textContent=t}
+async function signIn(url,akey,email,pw){
+  url=url.replace(/\/+$/,'');
+  const r=await fetch(url+'/auth/v1/token?grant_type=password',{method:'POST',
+    headers:{apikey:akey,'Content-Type':'application/json'},body:JSON.stringify({email,password:pw})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error_description||d.msg||'로그인에 실패했습니다');
+  cloud={url,key:akey,email,refresh:d.refresh_token,uid:d.user.id};tok=d.access_token;saveCloud()}
+async function refreshTok(){
+  if(!cloud||!cloud.refresh)throw new Error('연결 정보가 없습니다');
+  const r=await fetch(cloud.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',
+    headers:{apikey:cloud.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:cloud.refresh})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error('세션이 만료됐습니다. 다시 연결하세요');
+  tok=d.access_token;cloud.refresh=d.refresh_token;saveCloud()}
+async function api(path,opt={},retry=true){
+  if(!tok)await refreshTok();
+  const r=await fetch(cloud.url+'/rest/v1/'+path,{...opt,
+    headers:{apikey:cloud.key,Authorization:'Bearer '+tok,'Content-Type':'application/json',...(opt.headers||{})}});
+  if(r.status===401&&retry){await refreshTok();return api(path,opt,false)}
+  return r}
+async function pull(){
+  const r=await api('weekplan?select=data,updated_at&user_id=eq.'+cloud.uid);
+  if(!r.ok)throw new Error('불러오기 실패 ('+r.status+')');
+  return (await r.json())[0]||null}
+async function push(){
+  const r=await api('weekplan',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},
+    body:JSON.stringify([{user_id:cloud.uid,data:S,updated_at:S.updated||new Date().toISOString()}])});
+  if(!r.ok)throw new Error('저장 실패 ('+r.status+')')}
+function schedulePush(){clearTimeout(pT);pT=setTimeout(()=>syncNow(true),700)}
+async function syncNow(pushOnly){
+  if(!cloud||busy)return;busy=true;syncUI('동기화 중…');
+  try{
+    if(!pushOnly){const rem=await pull();
+      if(rem&&(!S.updated||rem.updated_at>S.updated)){S=rem.data;if(canStore)await writeRaw(JSON.stringify(S));render()}}
+    await push();syncUI('동기화됨');
+  }catch(e){syncUI('연결 확인');toast(e.message,null)}
+  busy=false}
+
+$('#syncBtn').onclick=()=>{
+  if(cloud)return present('<h3>동기화</h3><div class="sub">'+esc(cloud.email)+'<br>이 기기와 다른 기기가 같은 데이터를 봅니다. 나중에 저장된 쪽이 이깁니다.</div>'+
+    '<div class="sbtns"><button id="cS">지금 동기화</button><button class="p" id="cX">닫기</button></div>'+
+    '<button class="danger" id="cD">연결 해제</button>',
+  close=>{$('#cX').onclick=()=>close();
+    $('#cS').onclick=()=>{close();setTimeout(()=>syncNow(false),100)};
+    let armed=false;
+    $('#cD').onclick=ev=>{const b=ev.currentTarget;
+      if(!armed){armed=true;b.classList.add('armed');b.textContent='한 번 더 누르면 해제';return}
+      cloud=null;tok=null;saveCloud();syncUI('연결');close();setTimeout(()=>toast('연결을 해제했습니다',null),60)}});
+  present('<h3>Supabase 연결</h3><div class="sub">폰과 맥이 같은 데이터를 보게 됩니다. Supabase 대시보드 → Settings → API 에서 URL과 anon key를 복사해 오세요.</div>'+
+    '<div class="field"><label>Project URL</label><input type="text" id="qUrl" placeholder="https://xxxx.supabase.co" autocapitalize="off" spellcheck="false"></div>'+
+    '<div class="field"><label>anon public key</label><input type="text" id="qKey" placeholder="eyJhbGci..." autocapitalize="off" spellcheck="false"></div>'+
+    '<div class="field"><label>이메일</label><input type="text" id="qEm" autocapitalize="off" spellcheck="false"></div>'+
+    '<div class="field"><label>비밀번호</label><input type="password" id="qPw">'+
+      '<p class="note">비밀번호는 이 기기에 저장하지 않습니다. 연결한 뒤에는 갱신 토큰으로 알아서 유지됩니다.</p></div>'+
+    '<div class="sbtns"><button id="qC">취소</button><button class="p" id="qS">연결</button></div>',
+  close=>{
+    $('#qC').onclick=()=>close();
+    $('#qS').onclick=async()=>{
+      const u=$('#qUrl').value.trim(),k=$('#qKey').value.trim(),e=$('#qEm').value.trim(),w=$('#qPw').value;
+      if(!u||!k||!e||!w){toast('네 칸을 모두 채워주세요',null);return}
+      $('#qS').textContent='연결 중…';
+      try{await signIn(u,k,e,w);close();
+        const rem=await pull();
+        if(rem&&(!S.updated||rem.updated_at>S.updated)){S=rem.data;render()}
+        await push();syncUI('동기화됨');setTimeout(()=>toast('연결됐습니다',null),60);
+      }catch(err){$('#qS').textContent='연결';toast(err.message,null)}}})};
+
+addEventListener('visibilitychange',()=>{if(!document.hidden&&cloud)syncNow(false)});
+
+(async()=>{await load();loadCloud();render();
+  if(cloud){syncUI('동기화 중…');syncNow(false)}else syncUI('연결')})();
+</script>
