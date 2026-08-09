@@ -63,7 +63,7 @@ button{background:none;border:0;cursor:pointer;touch-action:manipulation}
 .row+.row::before{content:"";position:absolute;top:0;left:16px;right:0;height:.5px;background:var(--sep)}
 .row.tapme{transition:background 120ms ease}
 .row.tapme:active{background:var(--fill)}
-.row .t{flex:1;min-width:0;font-size:16px;word-break:break-word}
+.row .t{flex:1;min-width:0;font-size:16px;word-break:keep-all;overflow-wrap:anywhere;background:none;border:0;padding:0;display:block}
 .row .t small{display:block;font-size:13px;color:var(--label2);margin-top:1px}
 .row.done .t>span:first-child{text-decoration:line-through;color:var(--label2)}
 .chev{color:var(--label3);font-size:17px;flex:0 0 auto}
@@ -115,6 +115,20 @@ button{background:none;border:0;cursor:pointer;touch-action:manipulation}
 .dot.t2{background:var(--orange)}.dot.t3{background:var(--red)}
 .lv{font-weight:600}.lv.l2{color:var(--orange)}.lv.l3{color:var(--red)}
 .sepdot{color:var(--label3)}
+.q{width:17px;height:17px;border-radius:9px;background:var(--fill);color:var(--label2);font-size:11px;font-weight:700;
+  display:inline-flex;align-items:center;justify-content:center;vertical-align:-3px;margin-left:5px;
+  transition:transform 120ms var(--out),background 120ms ease}
+.q:active{transform:scale(.88);background:var(--fill2)}
+.legendrow{display:flex;align-items:center;gap:2px;flex-wrap:wrap;padding:0 16px 8px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--label2)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:7px;height:7px;border-radius:4px;display:inline-block}
+.tierdoc{margin-top:14px}
+.tierdoc .r{display:flex;gap:10px;padding:11px 0;border-top:.5px solid var(--sep)}
+.tierdoc .r:first-child{border-top:0}
+.tierdoc i{width:8px;height:8px;border-radius:4px;margin-top:7px;flex:0 0 auto}
+.tierdoc b{font-size:15px;font-weight:600;display:block}
+.tierdoc p{font-size:13.5px;color:var(--label2);line-height:1.45;margin-top:2px}
 .cnt{display:flex;gap:3px;padding:0 14px 8px}
 .pip{width:9px;height:9px;border-radius:3px;background:var(--fill2)}
 .pip.f{background:var(--blue)}.pip.x{background:var(--red)}
@@ -230,7 +244,11 @@ body.ro .tsk .tt,body.ro .row .t{pointer-events:none}
     <div class="grp"><h2>공유 필요 — 혼자 감당하기 어려운 일</h2><div class="list" id="shareNeed"></div>
       <div class="foot">리소스가 과한데 안 할 수는 없는 일입니다. 요일에도 그대로 배치되지만, 여기에서 따로 보이고 공유용 정리 맨 아래에도 붙습니다.</div></div>
 
-    <div class="grp"><div class="board" id="board"></div>
+    <div class="grp"><h2 class="legendrow"><span class="legend"><span><i style="background:var(--blue)"></i>1단계 무리 없이</span>
+        <span><i style="background:var(--orange)"></i>2단계 무리하면</span>
+        <span><i style="background:var(--red)"></i>3단계 공유 필요</span></span>
+        <button class="q" id="tierWhat2" aria-label="단계 설명">?</button></h2>
+      <div class="board" id="board"></div>
       <div class="foot">요일 아래 지점 배지를 누르면 그날 동선을 정합니다. 회의처럼 시간이 있는 건 위쪽에 시간순으로, 나머지 할 일은 그 아래에 붙습니다.</div></div>
 
     <div class="grp"><h2>요일을 안 정한 일</h2><div class="list" id="unassigned"></div>
@@ -248,13 +266,13 @@ body.ro .tsk .tt,body.ro .row .t{pointer-events:none}
             <option value="공통">3지점 공통</option><option value="화정">화정</option><option value="돌곶이">돌곶이</option><option value="회기">회기</option></select></div>
           <div class="fld"><label for="nKind">종류</label><select id="nKind">
             <option value="todo">할 일</option><option value="event">일정·회의</option><option value="daily">매일 반복</option></select></div>
-          <div class="fld"><label for="nTier">우선순위</label><select id="nTier">
+          <div class="fld"><label for="nTier">단계 <button class="q" id="tierWhat" aria-label="단계 설명">?</button></label><select id="nTier">
             <option value="1">무리 없이</option><option value="2">무리하면</option><option value="3">공유 필요</option></select></div>
           <div class="fld" id="wDay"><label for="nDay">요일</label><select id="nDay">
             <option value="">아직 안 정함</option><option value="0">월요일</option><option value="1">화요일</option><option value="2">수요일</option><option value="3">목요일</option><option value="4">금요일</option></select></div>
           <div class="fld hide" id="wTime"><label for="nTime">시간</label><input type="time" id="nTime"></div>
         </div>
-        <div class="addfoot"><p class="hint" id="kindHint"></p><button id="addBtn">추가</button></div>
+        <div class="addfoot"><p class="hint"><span id="kindHint"></span><br><span id="tierHint" style="color:var(--label2)"></span></p><button id="addBtn">추가</button></div>
       </div>
       <div class="foot">이름을 치고 엔터를 누르면 계속 추가됩니다. 지점을 고르면 공유용 정리에 그 지점 아래로 들어갑니다.</div>
     </div>
@@ -296,6 +314,10 @@ const KINDHINT={todo:'요일에 얹어두고 끝나면 체크하는 일입니다
   daily:'매일 도는 일입니다. 요일별로 했는지만 체크합니다.'};
 const TIERS={1:'무리 없이',2:'무리하면',3:'공유 필요'};
 const TIERLONG={1:'무리 없이 된다',2:'무리하면 된다',3:'공유 필요 — 혼자 감당 어려움'};
+const TIERHINT={
+  1:'지금 여력으로 확실히 끝낼 수 있는 일입니다.',
+  2:'하려면 뭔가를 내줘야 합니다 — 야근, 다른 업무, 개인 시간.',
+  3:'리소스가 과한데 안 할 수는 없는 일입니다. 혼자 삼키지 말고 알려야 합니다.'};
 const FEEL={fast:'생각보다 빨리',same:'예상과 비슷',slow:'훨씬 오래'};
 const BUSY={few:'거의 안 끊김',some:'몇 번 끊김',many:'계속 끊김'};
 let canStore=true,S=null,undoT=null;
@@ -365,11 +387,12 @@ function render(){
 function shareNeed(){
   const L=week().items.filter(i=>i.tier==3&&i.kind!=='daily');
   $('#shareNeed').innerHTML=L.length?L.map(i=>
-    '<button class="row tapme '+(i.done?'done':'')+'" data-edit="'+i.id+'">'+
+    '<div class="row '+(i.done?'done':'')+'">'+
+    '<button class="chk '+(i.done?'on':'')+'" data-fin="'+i.id+'" aria-label="완료">'+(i.done?'✓':'')+'</button>'+
     '<span class="pl '+i.place+'">'+i.place+'</span>'+
-    '<span class="t"><span>'+esc(i.title)+'</span><small>'+
-    (i.day!=null?DAYS[i.day]+'요일':'요일 안 정함')+(i.carry?' · '+i.carry+'주 밀림':'')+'</small></span>'+
-    '<span class="chev">›</span></button>').join('')
+    '<button class="t tapme" data-edit="'+i.id+'" style="text-align:left"><span>'+esc(i.title)+'</span><small>'+
+    (i.day!=null?DAYS[i.day]+'요일':'요일 안 정함')+(i.carry?' · '+i.carry+'주 밀림':'')+'</small></button>'+
+    '<span class="chev">›</span></div>').join('')
     :'<div class="blank">지금은 없습니다. 리소스가 과한 일이 생기면 단계를 ‘공유 필요’로 올리세요.</div>';
 }
 
@@ -409,8 +432,11 @@ const metaOf=i=>[TIERLONG[i.tier],KINDS[i.kind],i.day!=null?DAYS[i.day]+'요일'
 function unassigned(){
   const L=week().items.filter(i=>i.kind!=='daily'&&i.day==null);
   $('#unassigned').innerHTML=L.length?L.map(i=>
-    '<button class="row tapme" data-edit="'+i.id+'"><span class="pl '+i.place+'">'+i.place+'</span>'+
-    '<span class="t"><span>'+esc(i.title)+'</span><small>'+metaOf(i)+'</small></span><span class="chev">›</span></button>').join('')
+    '<div class="row '+(i.done?'done':'')+'">'+
+    '<button class="chk '+(i.done?'on':'')+'" data-fin="'+i.id+'" aria-label="완료">'+(i.done?'✓':'')+'</button>'+
+    '<span class="pl '+i.place+'">'+i.place+'</span>'+
+    '<button class="t tapme" data-edit="'+i.id+'" style="text-align:left"><span>'+esc(i.title)+'</span>'+
+    '<small>'+metaOf(i)+'</small></button><span class="chev">›</span></div>').join('')
     :'<div class="blank">요일을 안 정한 일이 없습니다.</div>';
 }
 function daily(){
@@ -426,9 +452,11 @@ function lanes(){
   $('#lanes').innerHTML=PLACES.map(p=>{
     const L=week().items.filter(i=>i.place===p);
     return '<div class="grp"><h2>'+(p==='공통'?'3지점 공통':p)+'</h2><div class="list">'+
-      (L.length?L.map(i=>'<button class="row tapme '+(i.done?'done':'')+'" data-edit="'+i.id+'">'+
-        '<span class="t"><span>'+esc(i.title)+'</span><small>'+metaOf(i)+(i.carry?' · '+i.carry+'주 밀림':'')+'</small></span>'+
-        '<span class="chev">›</span></button>').join(''):'<div class="blank">아직 없습니다.</div>')+'</div></div>'}).join('');
+      (L.length?L.map(i=>'<div class="row '+(i.done?'done':'')+'">'+
+        (i.kind!=='daily'?'<button class="chk '+(i.done?'on':'')+'" data-fin="'+i.id+'" aria-label="완료">'+(i.done?'✓':'')+'</button>':'')+
+        '<button class="t tapme" data-edit="'+i.id+'" style="text-align:left"><span>'+esc(i.title)+'</span>'+
+        '<small>'+metaOf(i)+(i.carry?' · '+i.carry+'주 밀림':'')+'</small></button>'+
+        '<span class="chev">›</span></div>').join(''):'<div class="blank">아직 없습니다.</div>')+'</div></div>'}).join('');
 }
 function review(){
   $('#capV').textContent=S.cap+'개';
@@ -500,6 +528,22 @@ function syncKind(){const v=$('#nKind').value;
   $('#wTime').classList.toggle('hide',v!=='event');
   $('#kindHint').textContent=KINDHINT[v]}
 $('#nKind').addEventListener('change',syncKind);syncKind();
+function syncTier(){$('#tierHint').textContent=TIERS[$('#nTier').value]+' — '+TIERHINT[$('#nTier').value]}
+$('#nTier').addEventListener('change',syncTier);syncTier();
+
+const TIERDOC='<h3>세 단계</h3><div class="sub">“얼마나 중요한가”가 아니라 <b>“지금 내 여력으로 되는가”</b>로 나눕니다.</div>'+
+  '<div class="tierdoc">'+
+  '<div class="r"><i style="background:var(--blue)"></i><div><b>1단계 · 무리 없이</b>'+
+    '<p>지금 여력으로 확실히 끝낼 수 있는 일. 여기 있는 게 그 주에 실제로 되는 양입니다. 금요일에 이게 100%가 아니면 판단이 과했던 겁니다.</p></div></div>'+
+  '<div class="r"><i style="background:var(--orange)"></i><div><b>2단계 · 무리하면</b>'+
+    '<p>되긴 하는데 뭔가를 내줘야 하는 일. 야근, 다른 업무, 개인 시간 중 하나가 나갑니다. 얹는 게 아니라 <b>1단계에서 하나 빼고 바꿔 넣는 것</b>으로 생각하세요.</p></div></div>'+
+  '<div class="r"><i style="background:var(--red)"></i><div><b>3단계 · 공유 필요</b>'+
+    '<p>리소스가 과한데 안 할 수는 없는 일. 안 하겠다는 뜻이 아니라 <b>혼자 삼키면 안 된다</b>는 표시입니다. 보드 맨 위와 공유용 정리 맨 아래에 따로 모여서, 논의가 필요하다는 게 드러납니다.</p></div></div>'+
+  '</div>';
+const openTierDoc=()=>present(TIERDOC+'<div class="sbtns"><button class="p" id="tdC">알겠습니다</button></div>',
+  close=>{$('#tdC').onclick=()=>close()});
+$('#tierWhat').onclick=openTierDoc;
+if($('#tierWhat2'))$('#tierWhat2').onclick=openTierDoc;
 
 $('#addBtn').onclick=()=>{
   const t=$('#nTitle').value.trim();if(!t){$('#nTitle').focus();return}
@@ -590,8 +634,9 @@ function editSheet(item){
     '<div class="field"><label>종류</label><div class="opts">'+
       Object.keys(KINDS).map(k=>o('kind',k,KINDS[k],item.kind===k)).join('')+'</div>'+
       '<p class="note" id="eHint">'+KINDHINT[item.kind]+'</p></div>'+
-    '<div class="field"><label>우선순위</label><div class="opts">'+
-      [1,2,3].map(n=>o('tier',n,TIERS[n],item.tier==n)).join('')+'</div></div>'+
+    '<div class="field"><label>단계</label><div class="opts">'+
+      [1,2,3].map(n=>o('tier',n,TIERS[n],item.tier==n)).join('')+'</div>'+
+      '<p class="note" id="tHint">'+TIERHINT[item.tier]+'</p></div>'+
     '<div class="field '+(item.kind==='daily'?'hide':'')+'" id="fDay"><label>요일</label><div class="opts">'+
       o('day','','미정',item.day==null)+DAYS.map((d,x)=>o('day',x,d,item.day===x)).join('')+'</div></div>'+
     '<div class="field '+(item.kind==='event'?'':'hide')+'" id="fTime"><label>시간</label>'+
@@ -605,7 +650,7 @@ function editSheet(item){
       b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
       if(g==='place')place=v;
       if(g==='kind'){kind=v;$('#fDay').classList.toggle('hide',v==='daily');$('#fTime').classList.toggle('hide',v!=='event');$('#eHint').textContent=KINDHINT[v]}
-      if(g==='tier')tier=+v;
+      if(g==='tier'){tier=+v;$('#tHint').textContent=TIERHINT[tier]}
       if(g==='day')day=v===''?null:+v;
       tap()});
     $('#eC').onclick=()=>close();
