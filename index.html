@@ -186,6 +186,12 @@ button{background:none;border:0;cursor:pointer;touch-action:manipulation}
 .toast.on{transform:translateY(0);opacity:1}
 .toast button{color:#0A84FF;font-weight:600;font-size:15px;white-space:nowrap}
 .banner{background:var(--orange);color:#000;font-size:13px;padding:8px 16px;text-align:center;font-weight:500}
+.robar{background:var(--fill);color:var(--label2);font-size:13px;padding:9px 16px;text-align:center}
+body.ro .chk,body.ro .del,body.ro .danger,body.ro .addwrap,body.ro .route .setroute,
+body.ro #syncBtn,body.ro #exp,body.ro #imp,body.ro #shareBtn,body.ro #shareLink,
+body.ro .dayck,body.ro .chev,body.ro .tip button,body.ro #rollBtn,body.ro #capRow{display:none!important}
+body.ro .route{pointer-events:none}
+body.ro .tsk .tt,body.ro .row .t{pointer-events:none}
 @media(prefers-reduced-transparency:reduce){.nav{background:var(--bg);backdrop-filter:none}.sheet{background:var(--card);backdrop-filter:none}}
 @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
 </style>
@@ -193,12 +199,14 @@ button{background:none;border:0;cursor:pointer;touch-action:manipulation}
 <div class="nav" id="nav"><div class="wrap navin">
   <span class="navtitle">주간 동선 · 투두</span>
   <button class="info" id="help" aria-label="사용법">?</button>
-  <button class="navbtn navsp" id="syncBtn">연결</button>
+  <button class="navbtn navsp" id="shareLink">공유 링크</button>
+  <button class="navbtn" id="syncBtn">연결</button>
   <button class="navbtn" id="shareBtn">공유용 정리</button>
   <button class="navbtn" id="exp">내보내기</button>
   <button class="navbtn" id="imp">불러오기</button>
   <input type="file" id="file" accept="application/json" class="hide">
 </div></div>
+<div class="robar hide" id="robar">읽기 전용으로 보고 있습니다. 내용은 실시간으로 반영됩니다.</div>
 <div class="banner hide" id="nostore">저장이 안 되는 환경입니다. 작업을 마치면 <b>내보내기</b>로 파일을 받아두세요.</div>
 
 <div class="wrap">
@@ -256,7 +264,7 @@ button{background:none;border:0;cursor:pointer;touch-action:manipulation}
       <div id="advice" style="margin-top:12px"></div>
       <div id="carryAlert" style="margin-top:12px"></div></div>
     <div class="grp"><h2>하루에 얹는 할 일 개수</h2>
-      <div class="list"><div class="row"><span class="t">한도<small>회의·매일 반복은 빼고 셉니다</small></span>
+      <div class="list" id="capRow"><div class="row"><span class="t">한도<small>회의·매일 반복은 빼고 셉니다</small></span>
         <div style="display:flex;gap:8px;align-items:center">
           <button class="chk" data-cap="-1" style="border-color:var(--label3)">−</button>
           <span class="mono" id="capV" style="min-width:34px;text-align:center"></span>
@@ -335,7 +343,7 @@ async function load(){
   canStore=mode!=='none';
   if(!canStore)$('#nostore').classList.remove('hide');
 }
-let sT;function save(){clearTimeout(sT);sT=setTimeout(async()=>{
+let sT;function save(){if(RO)return;clearTimeout(sT);sT=setTimeout(async()=>{
   S.updated=new Date().toISOString();
   if(canStore){const ok=await writeRaw(JSON.stringify(S));
     if(!ok){canStore=false;$('#nostore').classList.remove('hide')}}
@@ -453,6 +461,7 @@ const hideToast=()=>$('#toast').classList.remove('on');
 
 document.addEventListener('click',e=>{
   const b=e.target.closest('button,[data-edit]');if(!b)return;
+  if(RO)return;
   if(b.dataset.cap){S.cap=Math.max(1,S.cap+ +b.dataset.cap);tap();render();return}
   if(b.dataset.route!==undefined){routeSheet(+b.dataset.route);return}
   if(b.dataset.ck!==undefined&&b.dataset.d!==undefined){const i=find(b.dataset.ck);i.checks[+b.dataset.d]^=1;tap();render();return}
@@ -704,8 +713,69 @@ $('#syncBtn').onclick=()=>{
         await push();syncUI('동기화됨');setTimeout(()=>toast('연결됐습니다',null),60);
       }catch(err){$('#qS').textContent='연결';toast(err.message,null)}}})};
 
-addEventListener('visibilitychange',()=>{if(!document.hidden&&cloud)syncNow(false)});
+addEventListener('visibilitychange',()=>{if(!document.hidden&&cloud&&!RO)syncNow(false)});
 
-(async()=>{await load();loadCloud();render();
+/* ---------- 읽기 전용 공유 ---------- */
+function hashParams(){const h=location.hash.replace(/^#/,'');const o={};
+  h.split('&').forEach(kv=>{const i=kv.indexOf('=');if(i>0)o[kv.slice(0,i)]=decodeURIComponent(kv.slice(i+1))});return o}
+const HP=hashParams();
+const RO=!!(HP.s&&HP.u&&HP.k);
+
+async function loadShared(){
+  const r=await fetch(HP.u+'/rest/v1/rpc/get_shared_plan',{method:'POST',
+    headers:{apikey:HP.k,Authorization:'Bearer '+HP.k,'Content-Type':'application/json'},
+    body:JSON.stringify({code:HP.s})});
+  if(!r.ok)throw new Error('불러오지 못했습니다 ('+r.status+')');
+  const d=await r.json();
+  if(!d)throw new Error('링크가 만료되었거나 잘못된 주소입니다');
+  return d}
+
+async function getShareCode(){
+  const r=await api('weekplan?select=share_code&user_id=eq.'+cloud.uid);
+  if(!r.ok)return null;const a=await r.json();return a[0]?a[0].share_code:null}
+async function setShareCode(code){
+  const r=await api('weekplan?user_id=eq.'+cloud.uid,{method:'PATCH',body:JSON.stringify({share_code:code})});
+  if(!r.ok)throw new Error('공유 설정 실패 ('+r.status+')')}
+const mkCode=()=>Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,6);
+const shareURL=c=>location.origin+location.pathname+'#s='+c+'&u='+encodeURIComponent(cloud.url)+'&k='+encodeURIComponent(cloud.key);
+
+$('#shareLink').onclick=async()=>{
+  if(!cloud){toast('먼저 Supabase에 연결하세요',null);return}
+  let code=null;
+  try{code=await getShareCode()}catch(e){toast(e.message,null);return}
+  present('<h3>읽기 전용 공유</h3><div class="sub">링크를 받은 사람은 로그인 없이 보기만 할 수 있습니다. 고치거나 지울 수는 없습니다.</div>'+
+    (code?'<textarea class="share" id="shTxt" style="height:110px" readonly></textarea>'+
+      '<div class="sbtns"><button id="shX">닫기</button><button class="p" id="shK">링크 복사</button></div>'+
+      '<button class="danger" id="shD">공유 끄기</button>'
+     :'<p class="note" style="margin-top:16px">아직 공유가 꺼져 있습니다. 켜면 링크가 만들어집니다.</p>'+
+      '<div class="sbtns"><button id="shX">닫기</button><button class="p" id="shOn">공유 켜기</button></div>'),
+  close=>{
+    if(code)$('#shTxt').value=shareURL(code);
+    $('#shX').onclick=()=>close();
+    if($('#shOn'))$('#shOn').onclick=async()=>{
+      try{const c=mkCode();await setShareCode(c);close();setTimeout(()=>toast('공유를 켰습니다. 다시 눌러 링크를 복사하세요',null),60)}
+      catch(e){toast(e.message,null)}};
+    if($('#shK'))$('#shK').onclick=async()=>{const t=$('#shTxt');
+      try{await navigator.clipboard.writeText(t.value)}catch(e){t.removeAttribute('readonly');t.select();document.execCommand('copy')}
+      close();setTimeout(()=>toast('링크를 복사했습니다',null),60)};
+    if($('#shD')){let armed=false;
+      $('#shD').onclick=async ev=>{const b=ev.currentTarget;
+        if(!armed){armed=true;b.classList.add('armed');b.textContent='한 번 더 누르면 링크 폐기';return}
+        try{await setShareCode(null);close();setTimeout(()=>toast('공유를 껐습니다. 기존 링크는 더 이상 열리지 않습니다',null),60)}
+        catch(e){toast(e.message,null)}}}
+  })};
+
+(async()=>{
+  if(RO){
+    document.body.classList.add('ro');
+    $('#robar').classList.remove('hide');
+    try{S=await loadShared()}catch(e){
+      document.querySelector('.wrap').innerHTML='<div class="grp"><div class="list"><div class="blank"><b>열 수 없습니다</b>'+esc(e.message)+'</div></div></div>';
+      return}
+    if(!S||!S.cap)S=blank();
+    render();
+    setInterval(async()=>{try{const d=await loadShared();if(d&&d.updated!==S.updated){S=d;render()}}catch(e){}},60000);
+    return}
+  await load();loadCloud();render();
   if(cloud){syncUI('동기화 중…');syncNow(false)}else syncUI('연결')})();
 </script>
