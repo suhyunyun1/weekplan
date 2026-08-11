@@ -115,6 +115,15 @@ button{background:none;border:0;cursor:pointer;touch-action:manipulation}
 .dot.t2{background:var(--orange)}.dot.t3{background:var(--red)}
 .lv{font-weight:600}.lv.l2{color:var(--orange)}.lv.l3{color:var(--red)}
 .sepdot{color:var(--label3)}
+.dot.ad{background:var(--teal)}
+.quick{background:var(--card);border-radius:12px;padding:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.quick input[type=text]{flex:1;min-width:150px;background:var(--fill);border:0;border-radius:9px;padding:11px 13px;font-size:17px}
+.quick select{background:var(--fill);border:0;border-radius:9px;padding:11px 26px 11px 12px;font-size:15px;-webkit-appearance:none;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,rgba(60,60,67,.5) 50%),linear-gradient(135deg,rgba(60,60,67,.5) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.quick button{background:var(--teal);color:#fff;border-radius:10px;padding:11px 18px;font-size:16px;font-weight:600;
+  transition:transform 120ms var(--out),opacity 140ms ease}
+.quick button:active{transform:scale(.96);opacity:.85}
 .q{width:17px;height:17px;border-radius:9px;background:var(--fill);color:var(--label2);font-size:11px;font-weight:700;
   display:inline-flex;align-items:center;justify-content:center;vertical-align:-3px;margin-left:5px;
   transition:transform 120ms var(--out),background 120ms ease}
@@ -150,7 +159,7 @@ button{background:none;border:0;cursor:pointer;touch-action:manipulation}
   transition:transform 120ms var(--out),opacity 140ms ease}
 .addfoot button:active{transform:scale(.96);opacity:.85}
 
-.m3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.m3{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
 @media(max-width:640px){.m3{grid-template-columns:1fr}}
 .m{background:var(--card);border-radius:12px;padding:15px}
 .m label{font-size:13px;color:var(--label2)}
@@ -208,7 +217,7 @@ button{background:none;border:0;cursor:pointer;touch-action:manipulation}
 .robar{background:var(--fill);color:var(--label2);font-size:13px;padding:9px 16px;text-align:center}
 body.ro .chk,body.ro .del,body.ro .danger,body.ro .addwrap,body.ro .route .setroute,
 body.ro #syncBtn,body.ro #exp,body.ro #imp,body.ro #shareBtn,body.ro #shareLink,
-body.ro .dayck,body.ro .chev,body.ro .tip button,body.ro #rollBtn,body.ro #capRow{display:none!important}
+body.ro .dayck,body.ro .chev,body.ro .quick,body.ro .tip button,body.ro #rollBtn,body.ro #capRow{display:none!important}
 body.ro .route{pointer-events:none}
 body.ro .tsk .tt,body.ro .row .t{pointer-events:none}
 @media(prefers-reduced-transparency:reduce){.nav{background:var(--bg);backdrop-filter:none}.sheet{background:var(--card);backdrop-filter:none}}
@@ -241,6 +250,15 @@ body.ro .tsk .tt,body.ro .row .t{pointer-events:none}
     <button class="on">요일별</button><button>지점별</button><button>금요일 결산</button></div>
 
   <div id="tab-day">
+    <div class="grp"><h2>그때그때 한 일 — 계획에 없던 일</h2>
+      <div class="quick">
+        <select id="qPlace"><option value="공통">공통</option><option value="화정">화정</option><option value="돌곶이">돌곶이</option><option value="회기">회기</option></select>
+        <input type="text" id="qTitle" placeholder="방금 한 일" enterkeyhint="done">
+        <select id="qDay"></select>
+        <button id="qAdd">기록</button>
+      </div>
+      <div class="foot">이미 한 일로 바로 기록됩니다. 체크할 필요 없고 하루 한도에도 세지 않습니다. 계획 대비 얼마나 생기는지는 금요일 결산에서 봅니다.</div></div>
+
     <div class="grp"><h2>공유 필요 — 혼자 감당하기 어려운 일</h2><div class="list" id="shareNeed"></div>
       <div class="foot">리소스가 과한데 안 할 수는 없는 일입니다. 요일에도 그대로 배치되지만, 여기에서 따로 보이고 공유용 정리 맨 아래에도 붙습니다.</div></div>
 
@@ -265,7 +283,7 @@ body.ro .tsk .tt,body.ro .row .t{pointer-events:none}
           <div class="fld"><label for="nPlace">지점</label><select id="nPlace">
             <option value="공통">3지점 공통</option><option value="화정">화정</option><option value="돌곶이">돌곶이</option><option value="회기">회기</option></select></div>
           <div class="fld"><label for="nKind">종류</label><select id="nKind">
-            <option value="todo">할 일</option><option value="event">일정·회의</option><option value="daily">매일 반복</option></select></div>
+            <option value="todo">할 일</option><option value="event">일정·회의</option><option value="daily">매일 반복</option><option value="adhoc">계획 외</option></select></div>
           <div class="fld"><label for="nTier">단계 <button class="q" id="tierWhat" aria-label="단계 설명">?</button></label><select id="nTier">
             <option value="1">무리 없이</option><option value="2">무리하면</option><option value="3">공유 필요</option></select></div>
           <div class="fld" id="wDay"><label for="nDay">요일</label><select id="nDay">
@@ -285,6 +303,7 @@ body.ro .tsk .tt,body.ro .row .t{pointer-events:none}
         <div class="m"><label>‘무리 없이’ 달성률</label><div class="big" id="rCore">—</div><p>3주 연속 100%가 아니면 무리 없이 할 수 있다는 판단 자체가 과했던 겁니다.</p></div>
         <div class="m"><label>생각보다 오래 걸린 비율</label><div class="big" id="rSlow">—</div><p>절반을 넘으면 하루에 얹는 개수가 현실보다 많습니다.</p></div>
         <div class="m"><label>계속 끊긴 비율</label><div class="big" id="rBusy">—</div><p>일이 어려운 게 아니라 자리를 못 지킨 겁니다. 개수보다 이걸 먼저 보세요.</p></div>
+        <div class="m"><label>계획 외로 생긴 일</label><div class="big" id="rAdhoc">—</div><p id="rAdhocP">계획에 없던 일이 끼어든 양입니다. 이게 높으면 계획이 틀린 게 아니라 계획할 수 없는 구조입니다.</p></div>
       </div>
       <div class="foot" id="reviewHint"></div>
       <div id="advice" style="margin-top:12px"></div>
@@ -308,10 +327,11 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const DAYS=['월','화','수','목','금'],KEY='weekplan-v3';
 const PLACES=['공통','화정','돌곶이','회기'];
 const SPOTS=['화정','돌곶이','회기','출장','외부회의','휴무'];
-const KINDS={todo:'할 일',event:'일정·회의',daily:'매일 반복'};
+const KINDS={todo:'할 일',event:'일정·회의',daily:'매일 반복',adhoc:'계획 외'};
 const KINDHINT={todo:'요일에 얹어두고 끝나면 체크하는 일입니다.',
   event:'회의·미팅처럼 시간이 정해진 일입니다. 한도에 세지 않습니다.',
-  daily:'매일 도는 일입니다. 요일별로 했는지만 체크합니다.'};
+  daily:'매일 도는 일입니다. 요일별로 했는지만 체크합니다.',
+  adhoc:'계획에 없었는데 그때그때 하게 된 일입니다. 이미 한 일로 기록됩니다.'};
 const TIERS={1:'무리 없이',2:'무리하면',3:'공유 필요'};
 const TIERLONG={1:'무리 없이 된다',2:'무리하면 된다',3:'공유 필요 — 혼자 감당 어려움'};
 const TIERHINT={
@@ -382,7 +402,7 @@ let sT;function save(){if(RO)return;clearTimeout(sT);sT=setTimeout(async()=>{
 function render(){
   $('#wklab').textContent=label();
   $('#thisWeek').classList.toggle('hide',!isThisWeek());
-  shareNeed();board();unassigned();daily();lanes();review();save();
+  shareNeed();board();unassigned();daily();lanes();review();qDefault();save();
 }
 function shareNeed(){
   const L=week().items.filter(i=>i.tier==3&&i.kind!=='daily');
@@ -402,6 +422,7 @@ function board(){
     const dt=dOf(x),route=week().route[x]||[];
     const ev=week().items.filter(i=>i.kind==='event'&&i.day===x).sort((a,b)=>(a.time||'99').localeCompare(b.time||'99'));
     const td=week().items.filter(i=>i.kind==='todo'&&i.day===x);
+    const ad=week().items.filter(i=>i.kind==='adhoc'&&i.day===x);
     const n=todoCount(x),over=n>cap;
     let pips='';for(let k=0;k<Math.max(cap,n);k++)pips+='<span class="pip '+(k<n?(k<cap?'f':'x'):'')+'"></span>';
     return '<div class="dayc '+(x===ti?'now':'')+'"><div class="dayh"><b>'+d+'요일</b>'+
@@ -424,7 +445,11 @@ function board(){
         (i.tier>1?'<b class="lv l'+i.tier+'">'+TIERS[i.tier]+'</b><span class="sepdot">·</span>':'')+
         esc(i.place)+(i.carry?'<span class="sepdot">·</span><span style="color:var(--red)">'+i.carry+'주 밀림</span>':'')+
         '</span></button></div>').join('')
-        :'<div class="blank" style="padding:12px 10px;font-size:13px">비어 있음</div>')+'</div>';
+        :'<div class="blank" style="padding:12px 10px;font-size:13px">비어 있음</div>')+
+      (ad.length?'<div class="secline">계획 외</div>'+ad.map(i=>
+        '<div class="tsk"><i class="dot ad" style="margin-top:6px"></i>'+
+        '<button class="tt" data-edit="'+i.id+'"><span class="ttl">'+esc(i.title)+'</span>'+
+        '<span class="mt">'+esc(i.place)+'</span></button></div>').join(''):'')+'</div>';
   }).join('');
 }
 const metaOf=i=>[TIERLONG[i.tier],KINDS[i.kind],i.day!=null?DAYS[i.day]+'요일':(i.kind!=='daily'?'요일 안 정함':null),i.time?hm(i.time):null].filter(Boolean).join(' · ');
@@ -468,6 +493,11 @@ function review(){
   $('#rCore').textContent=core==null?'—':core+'%';
   $('#rSlow').textContent=slow==null?'—':slow+'%';
   $('#rBusy').textContent=busy==null?'—':busy+'%';
+  const adN=week().items.filter(i=>i.kind==='adhoc').length;
+  const plN=week().items.filter(i=>(i.kind==='todo'||i.kind==='event')&&i.done).length;
+  $('#rAdhoc').textContent=adN?adN+'개':'—';
+  $('#rAdhocP').textContent=adN?'이번 주에 끝낸 일 '+(adN+plN)+'개 중 '+Math.round(adN/(adN+plN)*100)+'%가 계획에 없던 일입니다.'
+    :'계획에 없던 일이 생기면 “그때그때 한 일”에 기록하세요. 여기에 비율이 나옵니다.';
   $('#reviewHint').textContent=done.length?'끝낸 일 '+done.length+'개의 기록으로 계산했습니다.'
     :'아직 기록이 없습니다. 일을 끝낼 때마다 두 가지만 골라두면 여기에 숫자가 나옵니다.';
   let tip='';
@@ -497,8 +527,11 @@ function shareText(){
     L.filter(i=>i.kind==='event').sort((a,b)=>(a.day-b.day)||(a.time||'').localeCompare(b.time||''))
       .forEach(i=>{const dt=i.day!=null?dOf(i.day):null;
         s+='-'+(dt?(dt.getMonth()+1)+'/'+dt.getDate()+' '+DAYS[i.day]+'요일 ':'')+(i.time?hm(i.time)+' ':'')+i.title+'\n'});
-    L.filter(i=>i.kind!=='event').forEach(i=>{s+='-'+i.title+(i.tier==2?' (무리하면)':'')+'\n'});
+    L.filter(i=>i.kind!=='event'&&i.kind!=='adhoc').forEach(i=>{s+='-'+i.title+(i.tier==2?' (무리하면)':'')+'\n'});
   });
+  const ad=W.items.filter(i=>i.kind==='adhoc');
+  if(ad.length){s+='\n<계획 외로 생긴 일>\n';
+    ad.forEach(i=>{s+='-['+i.place+'] '+(i.day!=null?DAYS[i.day]+' ':'')+i.title+'\n'})}
   const sn=W.items.filter(i=>i.tier==3&&i.kind!=='daily');
   if(sn.length){s+='\n<공유 필요 — 혼자 감당 어려움>\n';
     sn.forEach(i=>{s+='-['+i.place+'] '+i.title+(i.carry?' ('+i.carry+'주째)':'')+'\n'})}
@@ -553,6 +586,15 @@ $('#addBtn').onclick=()=>{
     done:false,feel:null,busy:null,carry:0,checks:[0,0,0,0,0]});
   $('#nTitle').value='';$('#nTitle').focus();tap();render();toast('“'+t+'” 추가됨',null)};
 $('#nTitle').addEventListener('keydown',e=>{if(e.key==='Enter')$('#addBtn').click()});
+
+$('#qDay').innerHTML=DAYS.map((d,x)=>'<option value="'+x+'">'+d+'</option>').join('');
+function qDefault(){const t=isThisWeek()?todayIdx():-1;$('#qDay').value=String(t>=0?t:0)}
+$('#qAdd').onclick=()=>{
+  const t=$('#qTitle').value.trim();if(!t){$('#qTitle').focus();return}
+  week().items.push({id:uid(),title:t,place:$('#qPlace').value,kind:'adhoc',tier:1,
+    day:+$('#qDay').value,time:null,done:true,feel:null,busy:null,carry:0,checks:[0,0,0,0,0]});
+  $('#qTitle').value='';$('#qTitle').focus();tap();render();toast('“'+t+'” 기록했습니다',null)};
+$('#qTitle').addEventListener('keydown',e=>{if(e.key==='Enter')$('#qAdd').click()});
 
 const segBtns=$$('#seg button'),thumb=$('#thumb');
 function seg(i){segBtns.forEach((b,x)=>b.classList.toggle('on',x===i));
