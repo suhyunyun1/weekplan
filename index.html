@@ -585,7 +585,8 @@ $('#addBtn').onclick=()=>{
     day:(k!=='daily'&&dv!=='')?+dv:null,time:k==='event'?$('#nTime').value:null,
     done:false,feel:null,busy:null,carry:0,checks:[0,0,0,0,0]});
   $('#nTitle').value='';$('#nTitle').focus();tap();render();toast('“'+t+'” 추가됨',null)};
-$('#nTitle').addEventListener('keydown',e=>{if(e.key==='Enter')$('#addBtn').click()});
+const isIME=e=>e.isComposing||e.keyCode===229;
+$('#nTitle').addEventListener('keydown',e=>{if(e.key==='Enter'&&!isIME(e))$('#addBtn').click()});
 
 $('#qDay').innerHTML=DAYS.map((d,x)=>'<option value="'+x+'">'+d+'</option>').join('');
 function qDefault(){const t=isThisWeek()?todayIdx():-1;$('#qDay').value=String(t>=0?t:0)}
@@ -594,7 +595,7 @@ $('#qAdd').onclick=()=>{
   week().items.push({id:uid(),title:t,place:$('#qPlace').value,kind:'adhoc',tier:1,
     day:+$('#qDay').value,time:null,done:true,feel:null,busy:null,carry:0,checks:[0,0,0,0,0]});
   $('#qTitle').value='';$('#qTitle').focus();tap();render();toast('“'+t+'” 기록했습니다',null)};
-$('#qTitle').addEventListener('keydown',e=>{if(e.key==='Enter')$('#qAdd').click()});
+$('#qTitle').addEventListener('keydown',e=>{if(e.key==='Enter'&&!isIME(e))$('#qAdd').click()});
 
 const segBtns=$$('#seg button'),thumb=$('#thumb');
 function seg(i){segBtns.forEach((b,x)=>b.classList.toggle('on',x===i));
