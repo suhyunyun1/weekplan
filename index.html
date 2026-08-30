@@ -70,11 +70,14 @@ button{background:none;border:0;cursor:pointer;touch-action:manipulation}
 .blank{padding:20px 16px;text-align:center;color:var(--label2);font-size:14px;line-height:1.5}
 .blank b{display:block;color:var(--label);font-size:15px;font-weight:600;margin-bottom:3px}
 
-.chk{flex:0 0 auto;width:26px;height:26px;border-radius:13px;border:1.5px solid var(--label3);
+.chk{position:relative;flex:0 0 auto;width:26px;height:26px;border-radius:13px;border:1.5px solid var(--label3);
   display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;
   transition:transform 120ms var(--out),background 140ms ease,border-color 140ms ease}
 .chk:active{transform:scale(.86)}
 .chk.on{background:var(--green);border-color:var(--green)}
+.chk.pt{border-color:transparent;background:none;padding:0}
+.chk.pt svg{width:100%;height:100%;display:block}
+.prog{font-weight:600;color:var(--blue)}
 .dayck{display:flex;gap:5px}
 .dayck button{width:30px;height:30px;border-radius:15px;background:var(--fill);font-size:12px;font-weight:600;color:var(--label2);
   transition:transform 120ms var(--out),background 140ms ease,color 140ms ease}
@@ -303,6 +306,7 @@ body.ro .tsk .tt,body.ro .row .t{pointer-events:none}
         <div class="m"><label>‘무리 없이’ 달성률</label><div class="big" id="rCore">—</div><p>3주 연속 100%가 아니면 무리 없이 할 수 있다는 판단 자체가 과했던 겁니다.</p></div>
         <div class="m"><label>생각보다 오래 걸린 비율</label><div class="big" id="rSlow">—</div><p>절반을 넘으면 하루에 얹는 개수가 현실보다 많습니다.</p></div>
         <div class="m"><label>계속 끊긴 비율</label><div class="big" id="rBusy">—</div><p>일이 어려운 게 아니라 자리를 못 지킨 겁니다. 개수보다 이걸 먼저 보세요.</p></div>
+        <div class="m"><label>진행 중인 일</label><div class="big" id="rIng">—</div><p id="rIngP"></p></div>
         <div class="m"><label>계획 외로 생긴 일</label><div class="big" id="rAdhoc">—</div><p id="rAdhocP">계획에 없던 일이 끼어든 양입니다. 이게 높으면 계획이 틀린 게 아니라 계획할 수 없는 구조입니다.</p></div>
       </div>
       <div class="foot" id="reviewHint"></div>
@@ -338,6 +342,7 @@ const TIERHINT={
   1:'지금 여력으로 확실히 끝낼 수 있는 일입니다.',
   2:'하려면 뭔가를 내줘야 합니다 — 야근, 다른 업무, 개인 시간.',
   3:'리소스가 과한데 안 할 수는 없는 일입니다. 혼자 삼키지 말고 알려야 합니다.'};
+const PROG=[{v:0,l:'시작 전'},{v:25,l:'조금 했다'},{v:50,l:'절반쯤'},{v:80,l:'거의 다'},{v:100,l:'다 했어요'}];
 const FEEL={fast:'생각보다 빨리',same:'예상과 비슷',slow:'훨씬 오래'};
 const BUSY={few:'거의 안 끊김',some:'몇 번 끊김',many:'계속 끊김'};
 let canStore=true,S=null,undoT=null;
@@ -408,10 +413,10 @@ function shareNeed(){
   const L=week().items.filter(i=>i.tier==3&&i.kind!=='daily');
   $('#shareNeed').innerHTML=L.length?L.map(i=>
     '<div class="row '+(i.done?'done':'')+'">'+
-    '<button class="chk '+(i.done?'on':'')+'" data-fin="'+i.id+'" aria-label="완료">'+(i.done?'✓':'')+'</button>'+
+    chkHTML(i)+
     '<span class="pl '+i.place+'">'+i.place+'</span>'+
     '<button class="t tapme" data-edit="'+i.id+'" style="text-align:left"><span>'+esc(i.title)+'</span><small>'+
-    (i.day!=null?DAYS[i.day]+'요일':'요일 안 정함')+(i.carry?' · '+i.carry+'주 밀림':'')+'</small></button>'+
+    (!i.done&&i.prog>0?i.prog+'% · ':'')+(i.day!=null?DAYS[i.day]+'요일':'요일 안 정함')+(i.carry?' · '+i.carry+'주 밀림':'')+'</small></button>'+
     '<span class="chev">›</span></div>').join('')
     :'<div class="blank">지금은 없습니다. 리소스가 과한 일이 생기면 단계를 ‘공유 필요’로 올리세요.</div>';
 }
@@ -432,16 +437,16 @@ function board(){
         :'<span class="setroute">동선 정하기</span>')+'</button>'+
       (ev.length?'<div class="secline">일정</div>'+ev.map(i=>
         '<div class="tsk '+(i.done?'done':'')+'">'+
-        '<button class="chk '+(i.done?'on':'')+'" data-fin="'+i.id+'" style="width:22px;height:22px;font-size:11px" aria-label="완료">'+(i.done?'✓':'')+'</button>'+
+        chkHTML(i,1)+
         '<button class="tt" data-edit="'+i.id+'"><span class="ttl">'+esc(i.title)+'</span>'+
         '<span class="mt">'+(i.time?'<span class="tm">'+hm(i.time)+'</span><span class="sepdot">·</span>':'')+
         esc(i.place)+'</span></button></div>').join(''):'')+
       '<div class="secline">할 일</div><div class="cnt">'+pips+'</div>'+
       (over?'<div class="overhint">하루 한도 '+cap+'개를 넘었습니다. 옮기거나 ‘안 함’으로 내리세요.</div>':'')+
       (td.length?td.map(i=>'<div class="tsk '+(i.done?'done':'')+'">'+
-        '<button class="chk '+(i.done?'on':'')+'" data-fin="'+i.id+'" style="width:22px;height:22px;font-size:11px" aria-label="완료">'+(i.done?'✓':'')+'</button>'+
+        chkHTML(i,1)+
         '<button class="tt" data-edit="'+i.id+'"><span class="ttl">'+esc(i.title)+'</span>'+
-        '<span class="mt"><i class="dot t'+i.tier+'"></i>'+
+        '<span class="mt">'+progTxt(i)+'<i class="dot t'+i.tier+'"></i>'+
         (i.tier>1?'<b class="lv l'+i.tier+'">'+TIERS[i.tier]+'</b><span class="sepdot">·</span>':'')+
         esc(i.place)+(i.carry?'<span class="sepdot">·</span><span style="color:var(--red)">'+i.carry+'주 밀림</span>':'')+
         '</span></button></div>').join('')
@@ -452,16 +457,30 @@ function board(){
         '<span class="mt">'+esc(i.place)+'</span></button></div>').join(''):'')+'</div>';
   }).join('');
 }
+const RING=2*Math.PI*11;
+function ringSVG(p){
+  return '<svg viewBox="0 0 26 26" aria-hidden="true">'+
+    '<circle cx="13" cy="13" r="11" fill="none" stroke="rgba(120,120,128,.25)" stroke-width="2.5"/>'+
+    '<circle cx="13" cy="13" r="11" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round"'+
+    ' stroke-dasharray="'+RING.toFixed(2)+'" stroke-dashoffset="'+(RING*(1-p/100)).toFixed(2)+'"'+
+    ' transform="rotate(-90 13 13)"/></svg>'}
+function chkHTML(i,small){
+  const p=i.done?100:(+i.prog||0);
+  const cls=i.done?'on':(p>0?'pt':'');
+  const st=small?' style="width:22px;height:22px;font-size:11px"':'';
+  return '<button class="chk '+cls+'" data-fin="'+i.id+'"'+st+' aria-label="진행 상태">'+
+    (i.done?'✓':(p>0?ringSVG(p):''))+'</button>'}
+const progTxt=i=>(!i.done&&i.prog>0)?'<span class="prog">'+i.prog+'%</span><span class="sepdot">·</span>':'';
 const metaOf=i=>[TIERLONG[i.tier],KINDS[i.kind],i.day!=null?DAYS[i.day]+'요일':(i.kind!=='daily'?'요일 안 정함':null),i.time?hm(i.time):null].filter(Boolean).join(' · ');
 
 function unassigned(){
   const L=week().items.filter(i=>i.kind!=='daily'&&i.day==null);
   $('#unassigned').innerHTML=L.length?L.map(i=>
     '<div class="row '+(i.done?'done':'')+'">'+
-    '<button class="chk '+(i.done?'on':'')+'" data-fin="'+i.id+'" aria-label="완료">'+(i.done?'✓':'')+'</button>'+
+    chkHTML(i)+
     '<span class="pl '+i.place+'">'+i.place+'</span>'+
     '<button class="t tapme" data-edit="'+i.id+'" style="text-align:left"><span>'+esc(i.title)+'</span>'+
-    '<small>'+metaOf(i)+'</small></button><span class="chev">›</span></div>').join('')
+    '<small>'+(!i.done&&i.prog>0?i.prog+'% · ':'')+metaOf(i)+'</small></button><span class="chev">›</span></div>').join('')
     :'<div class="blank">요일을 안 정한 일이 없습니다.</div>';
 }
 function daily(){
@@ -478,7 +497,7 @@ function lanes(){
     const L=week().items.filter(i=>i.place===p);
     return '<div class="grp"><h2>'+(p==='공통'?'3지점 공통':p)+'</h2><div class="list">'+
       (L.length?L.map(i=>'<div class="row '+(i.done?'done':'')+'">'+
-        (i.kind!=='daily'?'<button class="chk '+(i.done?'on':'')+'" data-fin="'+i.id+'" aria-label="완료">'+(i.done?'✓':'')+'</button>':'')+
+        (i.kind!=='daily'?chkHTML(i):'')+
         '<button class="t tapme" data-edit="'+i.id+'" style="text-align:left"><span>'+esc(i.title)+'</span>'+
         '<small>'+metaOf(i)+(i.carry?' · '+i.carry+'주 밀림':'')+'</small></button>'+
         '<span class="chev">›</span></div>').join(''):'<div class="blank">아직 없습니다.</div>')+'</div></div>'}).join('');
@@ -493,6 +512,10 @@ function review(){
   $('#rCore').textContent=core==null?'—':core+'%';
   $('#rSlow').textContent=slow==null?'—':slow+'%';
   $('#rBusy').textContent=busy==null?'—':busy+'%';
+  const ing=week().items.filter(i=>!i.done&&i.prog>0&&i.kind!=='daily'&&i.kind!=='adhoc');
+  $('#rIng').textContent=ing.length?ing.length+'개':'—';
+  $('#rIngP').textContent=ing.length?'평균 '+Math.round(ing.reduce((a,i)=>a+i.prog,0)/ing.length)+'%까지 와 있습니다. 다음 주로 넘기면 진행도가 그대로 따라갑니다.'
+    :'손댄 채로 남아 있는 일이 없습니다.';
   const adN=week().items.filter(i=>i.kind==='adhoc').length;
   const plN=week().items.filter(i=>(i.kind==='todo'||i.kind==='event')&&i.done).length;
   $('#rAdhoc').textContent=adN?adN+'개':'—';
@@ -527,7 +550,8 @@ function shareText(){
     L.filter(i=>i.kind==='event').sort((a,b)=>(a.day-b.day)||(a.time||'').localeCompare(b.time||''))
       .forEach(i=>{const dt=i.day!=null?dOf(i.day):null;
         s+='-'+(dt?(dt.getMonth()+1)+'/'+dt.getDate()+' '+DAYS[i.day]+'요일 ':'')+(i.time?hm(i.time)+' ':'')+i.title+'\n'});
-    L.filter(i=>i.kind!=='event'&&i.kind!=='adhoc').forEach(i=>{s+='-'+i.title+(i.tier==2?' (무리하면)':'')+'\n'});
+    L.filter(i=>i.kind!=='event'&&i.kind!=='adhoc').forEach(i=>{
+      s+='-'+i.title+(i.tier==2?' (무리하면)':'')+(!i.done&&i.prog>0?' [진행 '+i.prog+'%]':'')+'\n'});
   });
   const ad=W.items.filter(i=>i.kind==='adhoc');
   if(ad.length){s+='\n<계획 외로 생긴 일>\n';
@@ -551,8 +575,9 @@ document.addEventListener('click',e=>{
   if(b.dataset.cap){S.cap=Math.max(1,S.cap+ +b.dataset.cap);tap();render();return}
   if(b.dataset.route!==undefined){routeSheet(+b.dataset.route);return}
   if(b.dataset.ck!==undefined&&b.dataset.d!==undefined){const i=find(b.dataset.ck);i.checks[+b.dataset.d]^=1;tap();render();return}
-  if(b.dataset.fin){const i=find(b.dataset.fin);if(i.done){i.done=false;i.feel=null;i.busy=null;render()}
-    else if(i.kind==='event'){i.done=true;i.feel='same';i.busy='some';tap();render()}else finishSheet(i);return}
+  if(b.dataset.fin){const i=find(b.dataset.fin);
+    if(i.kind==='event'){if(i.done){i.done=false;i.prog=0;i.feel=null;i.busy=null}else{i.done=true;i.prog=100;i.feel='same';i.busy='some'}tap();render();return}
+    progSheet(i);return}
   if(b.dataset.edit){editSheet(find(b.dataset.edit));return}
 });
 
@@ -583,7 +608,7 @@ $('#addBtn').onclick=()=>{
   const k=$('#nKind').value,dv=$('#nDay').value;
   week().items.push({id:uid(),title:t,place:$('#nPlace').value,kind:k,tier:+$('#nTier').value,
     day:(k!=='daily'&&dv!=='')?+dv:null,time:k==='event'?$('#nTime').value:null,
-    done:false,feel:null,busy:null,carry:0,checks:[0,0,0,0,0]});
+    done:false,prog:0,feel:null,busy:null,carry:0,checks:[0,0,0,0,0]});
   $('#nTitle').value='';$('#nTitle').focus();tap();render();toast('“'+t+'” 추가됨',null)};
 const isIME=e=>e.isComposing||e.keyCode===229;
 $('#nTitle').addEventListener('keydown',e=>{if(e.key==='Enter'&&!isIME(e))$('#addBtn').click()});
@@ -649,6 +674,22 @@ function routeSheet(x){
     $('#rC').onclick=()=>close();
     $('#rS').onclick=()=>{week().route[x]=r;tap();close();setTimeout(render,60)}})}
 
+function progSheet(item){
+  const cur=item.done?100:(+item.prog||0);
+  present('<h3>어디까지 됐나요</h3><div class="sub">'+esc(item.title)+'</div>'+
+    '<div class="field"><div class="opts col">'+PROG.map(o=>
+      '<button data-p="'+o.v+'" class="'+(cur===o.v?'on':'')+'">'+o.l+
+      (o.v>0&&o.v<100?'<small>'+o.v+'%</small>':'')+'</button>').join('')+'</div>'+
+    '<p class="note">숫자를 찍는 게 아니라 느낌으로 고르면 됩니다. 진행 중인 일은 요일 카드에서 반쯤 찬 원으로 보입니다.</p></div>'+
+    '<div class="sbtns"><button id="pC">취소</button></div>',
+  close=>{
+    $('#pC').onclick=()=>close();
+    $('#host').querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{
+      const v=+b.dataset.p;tap();
+      if(v===100){close();setTimeout(()=>finishSheet(item),260);return}
+      item.prog=v;item.done=false;item.feel=null;item.busy=null;
+      close();setTimeout(render,60)})})}
+
 function finishSheet(item){
   let feel='same',busy='some';
   const o=(g,v,l,on)=>'<button data-g="'+g+'" data-v="'+v+'" class="'+(on?'on':'')+'">'+l+'</button>';
@@ -664,7 +705,7 @@ function finishSheet(item){
       b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
       if(b.dataset.g==='feel')feel=b.dataset.v;else busy=b.dataset.v;tap()});
     $('#mC').onclick=()=>close();
-    $('#mS').onclick=()=>{item.done=true;item.feel=feel;item.busy=busy;tap();close();
+    $('#mS').onclick=()=>{item.done=true;item.prog=100;item.feel=feel;item.busy=busy;tap();close();
       setTimeout(()=>{render();toast('끝낸 걸로 기록했습니다',null)},60)}})}
 
 function editSheet(item){
