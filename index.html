@@ -353,7 +353,14 @@ body.ro .tsk .tt,body.ro .row .t{pointer-events:none}
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const DAYS=['월','화','수','목','금'],KEY='weekplan-v3';
 const PLACES=['공통','화정','돌곶이','회기'];
-const SPOTS=['화정','돌곶이','회기','출장','외부회의','휴무'];
+const SPOTS=['화정','돌곶이','회기','미정','외부회의','출장','휴무'];
+function routeTxt(r){
+  const out=[];
+  (r||[]).forEach(q=>{const p=q==='O'?'미정':q;
+    if(p==='외부회의'&&out.length){out[out.length-1]+='(외부회의)';return}
+    out.push(p)});
+  return out.join('>');
+}
 const KINDS={todo:'할 일',event:'일정·회의',daily:'매일 반복',adhoc:'계획 외'};
 const PROG=[{v:0,l:'시작 전'},{v:25,l:'조금 했다'},{v:50,l:'절반쯤'},{v:75,l:'거의 다'},{v:100,l:'다 했어요'}];
 const progLabel=v=>(PROG.find(x=>x.v===v)||PROG.reduce((a,b)=>Math.abs(b.v-v)<Math.abs(a.v-v)?b:a)).l;
@@ -465,7 +472,7 @@ function board(){
     return '<div class="dayc '+(x===ti?'now':'')+'"><div class="dayh"><b>'+d+'요일</b>'+
       '<span class="dt">'+(dt.getMonth()+1)+'/'+dt.getDate()+'</span>'+(x===ti?'<span class="nowtag">오늘</span>':'')+'</div>'+
       '<button class="route" data-route="'+x+'">'+(route.length?route.map((p,k)=>
-        (k?'<span class="arrow">→</span>':'')+'<span class="pl '+p+'">'+p+'</span>').join('')
+        (k?'<span class="arrow">›</span>':'')+'<span class="pl '+(PLACES.includes(p)?p:'')+'">'+p+'</span>').join('')
         :'<span class="setroute">동선 정하기</span>')+'</button>'+
       (ev.length?'<div class="secline">일정</div>'+ev.map(i=>
         '<div class="tsk '+(i.done?'done':'')+'">'+
@@ -576,27 +583,42 @@ function review(){
 }
 
 /* 공유용 텍스트 */
-function shareText(){
-  const T=wkTitle(),W=week();
-  let s='['+T+' 수현매니저 동선 공유]\n';
-  DAYS.forEach((d,x)=>{const r=W.route[x]||[];s+=dOf(x).getDate()+', '+d+' / '+(r.length?r.join('to'):'—')+'\n'});
-  s+='\n['+T+' 수현매니저 동선]\n';
-  PLACES.forEach(p=>{
-    const L=W.items.filter(i=>i.place===p);
+function shareText(branch){
+  const W=week();
+  const useO=W.route.some(r=>(r||[]).some(p=>p==='미정'||p==='O'));
+  let s='[수현매니저 동선 공유]\n';
+  DAYS.forEach((d,x)=>{const t=routeTxt(W.route[x]);
+    s+=dOf(x).getDate()+' '+d+' '+(t||'—')+'\n'});
+  if(useO)s+='\n*미정 : 실장님과 논의 후 방문 지점을 결정합니다.\n';
+
+  const want=branch&&branch!=='전체'?['공통',branch]:PLACES;
+  const inScope=i=>want.includes(i.place);
+  const line=i=>'-'+(spanOf(i)?'('+spanTxt(i)+') ':'')+(i.time?hm(i.time)+' ':'')+i.title+
+    (isSh(i)?' *공유 필요':'')+(!i.done&&i.prog>0?' (진행 '+i.prog+'%)':'');
+  const block=(L)=>{let o='';
+    want.forEach(p=>{
+      const G=L.filter(i=>i.place===p);
+      if(!G.length)return;
+      o+='['+p+']\n';
+      G.filter(i=>i.kind==='event').sort((x,y)=>(x.time||'99').localeCompare(y.time||'99')).forEach(i=>{o+=line(i)+'\n'});
+      G.filter(i=>i.kind!=='event').forEach(i=>{o+=line(i)+'\n'});
+    });
+    return o};
+
+  const plan=i=>i.kind!=='adhoc'&&i.kind!=='daily'&&inScope(i);
+  DAYS.forEach((d,x)=>{
+    const L=W.items.filter(i=>plan(i)&&i.day===x);
     if(!L.length)return;
-    s+='\n<'+(p==='공통'?'3지점 공통':p)+'>\n';
-    L.filter(i=>i.kind==='event').sort((a,b)=>(a.day-b.day)||(a.time||'').localeCompare(b.time||''))
-      .forEach(i=>{const dt=i.day!=null?dOf(i.day):null;
-        s+='-'+(dt?(dt.getMonth()+1)+'/'+dt.getDate()+' '+DAYS[i.day]+'요일 ':'')+(i.time?hm(i.time)+' ':'')+i.title+'\n'});
-    L.filter(i=>i.kind!=='event'&&i.kind!=='adhoc').forEach(i=>{
-      s+='-'+(spanOf(i)?'('+spanTxt(i)+') ':'')+i.title+(!i.done&&i.prog>0?' [진행 '+i.prog+'%]':'')+'\n'});
+    const dt=dOf(x),t=routeTxt(W.route[x]);
+    s+='\n'+(dt.getMonth()+1)+'/'+dt.getDate()+'('+d+')'+(t?' : '+t:'')+'\n'+block(L);
   });
-  const ad=W.items.filter(i=>i.kind==='adhoc');
-  if(ad.length){s+='\n<계획 외로 생긴 일>\n';
-    ad.forEach(i=>{s+='-['+i.place+'] '+(i.day!=null?DAYS[i.day]+' ':'')+i.title+'\n'})}
-  const sn=W.items.filter(i=>isSh(i)&&i.kind!=='daily');
-  if(sn.length){s+='\n<공유 필요 — 혼자 감당 어려움>\n';
-    sn.forEach(i=>{s+='-['+i.place+'] '+i.title+(i.carry?' ('+i.carry+'주째)':'')+'\n'})}
+
+  const dl=W.items.filter(i=>i.kind==='daily'&&inScope(i));
+  if(dl.length)s+='\n[매일 반복]\n'+block(dl).replace(/^\[.*\]\n/gm,'');
+
+  const un=W.items.filter(i=>plan(i)&&i.day==null);
+  if(un.length)s+='\n[요일 미정]\n'+block(un);
+
   return s;
 }
 
@@ -695,8 +717,8 @@ function routeSheet(x){
     const k=r.indexOf(b.dataset.spot);
     b.classList.toggle('on',k>=0);
     b.querySelector('.n').textContent=k>=0?(k+1):''});
-    $('#rPreview').textContent=r.length?r.join(' → '):'아직 없음'};
-  present('<h3>'+DAYS[x]+'요일 동선</h3><div class="sub">'+(dt.getMonth()+1)+'월 '+dt.getDate()+'일 · 가는 순서대로 누르세요. 다시 누르면 빠집니다.</div>'+
+    $('#rPreview').textContent=r.length?routeTxt(r):'아직 없음'};
+  present('<h3>'+DAYS[x]+'요일 동선</h3><div class="sub">'+(dt.getMonth()+1)+'월 '+dt.getDate()+'일 · 가는 순서대로 누르세요. 외부회의는 바로 앞 지점에 괄호로 붙습니다.</div>'+
     '<div class="field"><div class="opts">'+SPOTS.map(p=>
       '<button class="seqbtn" data-spot="'+p+'">'+p+'<span class="n"></span></button>').join('')+'</div>'+
       '<p class="note" id="rPreview"></p></div>'+
@@ -806,12 +828,20 @@ function editSheet(item){
       week().items.splice(idx,1);tap();close();
       setTimeout(()=>{render();toast('“'+copy.title+'” 삭제됨',()=>{week().items.splice(idx,0,copy);render()})},60)}})}
 
+let shBranch='화정';
 $('#shareBtn').onclick=()=>present(
-  '<h3>공유용 정리</h3><div class="sub">주간 공유 형식 그대로 만들었습니다. ‘이번 주엔 안 함’으로 둔 일은 빠집니다.</div>'+
+  '<h3>공유용 정리</h3><div class="sub">공통 + 선택한 지점만 들어갑니다.</div>'+
+  '<div class="field"><div class="opts">'+['화정','돌곶이','회기','전체'].map(b=>
+    '<button data-b="'+b+'" class="'+(shBranch===b?'on':'')+'">'+b+'</button>').join('')+'</div></div>'+
   '<textarea class="share" id="shTxt" readonly></textarea>'+
   '<div class="sbtns"><button id="shC">닫기</button><button class="p" id="shK">복사</button></div>',
   close=>{
-    $('#shTxt').value=shareText();
+    const draw=()=>$('#shTxt').value=shareText(shBranch);
+    draw();
+    $('#host').querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{
+      shBranch=b.dataset.b;
+      $('#host').querySelectorAll('[data-b]').forEach(x=>x.classList.toggle('on',x.dataset.b===shBranch));
+      tap();draw()});
     $('#shC').onclick=()=>close();
     $('#shK').onclick=async()=>{const t=$('#shTxt');
       try{await navigator.clipboard.writeText(t.value)}catch(e){t.removeAttribute('readonly');t.select();document.execCommand('copy');t.setAttribute('readonly','')}
@@ -854,20 +884,46 @@ let cloud=null,tok=null,pT=null,busy=false;
 function loadCloud(){try{cloud=JSON.parse(localStorage.getItem(CK)||'null')}catch(e){cloud=null}}
 function saveCloud(){try{cloud?localStorage.setItem(CK,JSON.stringify(cloud)):localStorage.removeItem(CK)}catch(e){}}
 function syncUI(t){$('#syncBtn').textContent=t}
+function relogin(){
+  present('<h3>다시 연결</h3><div class="sub">'+esc(cloud.email)+'</div>'+
+    '<div class="field"><label>비밀번호</label><input type="password" id="rPw"></div>'+
+    '<div class="sbtns"><button id="rC">취소</button><button class="p" id="rS">연결</button></div>',
+  close=>{
+    setTimeout(()=>{const e=$('#rPw');if(e)e.focus()},300);
+    const go=async()=>{
+      const pw=$('#rPw').value;if(!pw)return;
+      $('#rS').textContent='연결 중…';
+      try{await signIn(cloud.url,cloud.key,cloud.email,pw);close();
+        await syncNow(false);setTimeout(()=>toast('다시 연결됐습니다',null),60)}
+      catch(err){$('#rS').textContent='연결';toast(err.message,null)}};
+    $('#rC').onclick=()=>close();
+    $('#rS').onclick=go;
+    $('#rPw').addEventListener('keydown',e=>{if(e.key==='Enter')go()})})}
+
 async function signIn(url,akey,email,pw){
   url=url.replace(/\/+$/,'');
   const r=await fetch(url+'/auth/v1/token?grant_type=password',{method:'POST',
     headers:{apikey:akey,'Content-Type':'application/json'},body:JSON.stringify({email,password:pw})});
   const d=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error(d.error_description||d.msg||'로그인에 실패했습니다');
-  cloud={url,key:akey,email,refresh:d.refresh_token,uid:d.user.id};tok=d.access_token;saveCloud()}
+  cloud={url,key:akey,email,refresh:d.refresh_token,uid:d.user.id,expired:false};tok=d.access_token;saveCloud();syncUI('동기화됨')}
+let refreshing=null;
 async function refreshTok(){
   if(!cloud||!cloud.refresh)throw new Error('연결 정보가 없습니다');
-  const r=await fetch(cloud.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',
-    headers:{apikey:cloud.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:cloud.refresh})});
-  const d=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error('세션이 만료됐습니다. 다시 연결하세요');
-  tok=d.access_token;cloud.refresh=d.refresh_token;saveCloud()}
+  if(refreshing)return refreshing;
+  refreshing=(async()=>{
+    let last=null;
+    for(let n=0;n<2;n++){
+      const r=await fetch(cloud.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',
+        headers:{apikey:cloud.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:cloud.refresh})});
+      const d=await r.json().catch(()=>({}));
+      if(r.ok){tok=d.access_token;cloud.refresh=d.refresh_token;cloud.expired=false;saveCloud();return}
+      last=d;
+      if(r.status>=500||r.status===429){await new Promise(z=>setTimeout(z,900));continue}
+      break}
+    cloud.expired=true;saveCloud();
+    throw new Error('세션이 만료됐습니다. 비밀번호만 다시 넣으면 됩니다')})();
+  try{await refreshing}finally{refreshing=null}}
 async function api(path,opt={},retry=true){
   if(!tok)await refreshTok();
   const r=await fetch(cloud.url+'/rest/v1/'+path,{...opt,
@@ -889,10 +945,11 @@ async function syncNow(pushOnly){
     if(!pushOnly){const rem=await pull();
       if(rem&&(!S.updated||rem.updated_at>S.updated)){S=rem.data;if(canStore)await writeRaw(JSON.stringify(S));render()}}
     await push();syncUI('동기화됨');
-  }catch(e){syncUI('연결 확인');toast(e.message,null)}
+  }catch(e){syncUI(cloud&&cloud.expired?'다시 연결':'연결 확인');toast(e.message,null)}
   busy=false}
 
 $('#syncBtn').onclick=()=>{
+  if(cloud&&cloud.expired)return relogin();
   if(cloud)return present('<h3>동기화</h3><div class="sub">'+esc(cloud.email)+'<br>이 기기와 다른 기기가 같은 데이터를 봅니다. 나중에 저장된 쪽이 이깁니다.</div>'+
     '<div class="sbtns"><button id="cS">지금 동기화</button><button class="p" id="cX">닫기</button></div>'+
     '<button class="danger" id="cD">연결 해제</button>',
@@ -985,5 +1042,7 @@ $('#shareLink').onclick=async()=>{
     setInterval(async()=>{try{const d=await loadShared();if(d&&d.updated!==S.updated){S=d;render()}}catch(e){}},60000);
     return}
   await load();loadCloud();render();
-  if(cloud){syncUI('동기화 중…');syncNow(false)}else syncUI('연결')})();
+  if(cloud&&cloud.expired){syncUI('다시 연결');toast('세션이 만료됐습니다. 상단 “다시 연결”을 눌러 비밀번호만 넣으세요',null)}
+  else if(cloud){syncUI('동기화 중…');syncNow(false)}
+  else syncUI('연결')})();
 </script>
