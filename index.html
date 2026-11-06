@@ -78,6 +78,23 @@ button{background:none;border:0;cursor:pointer;touch-action:manipulation}
 .chk.pt{border-color:transparent;background:none;padding:0}
 .chk.pt svg{width:100%;height:100%;display:block}
 .prog{font-weight:600;color:var(--blue)}
+.cchip{font-size:11.5px;font-weight:700;padding:2.5px 8px;border-radius:6px;white-space:nowrap;letter-spacing:-.02em}
+.catrow{display:flex;align-items:center;gap:10px;padding:7px 0}
+.catrow+.catrow{border-top:.5px solid var(--sep)}
+.catrow .cn{flex:0 0 78px;font-size:12.5px;font-weight:600;letter-spacing:-.03em}
+.catrow .cdot{width:8px;height:8px;border-radius:3px;flex:0 0 auto;margin-right:-4px}
+.catrow .cb{flex:1;min-width:40px;height:8px;border-radius:4px;background:var(--fill);overflow:hidden}
+.catrow .cb i{display:block;height:100%;border-radius:4px;background:var(--blue);transition:width 300ms var(--out)}
+.catrow .cv{flex:0 0 20px;text-align:right;font-size:13px;font-variant-numeric:tabular-nums;color:var(--label2)}
+.catrow .ch{display:flex;gap:3px;flex:0 0 auto}
+.catrow .cp{flex:0 0 36px;text-align:right;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.catrow.zero .cp{color:var(--label3);font-weight:400}
+.catrow .ch span{width:11px;height:11px;border-radius:3px;background:var(--fill)}
+.cathead{display:flex;align-items:center;gap:10px;padding-bottom:7px;font-size:11px;color:var(--label3)}
+.cathead .cdot{width:8px;height:8px;flex:0 0 auto;margin-right:-4px}.cathead .cn{flex:0 0 78px}.cathead .cb{flex:1}.cathead .cv{flex:0 0 20px}
+.cathead .cp{flex:0 0 36px;text-align:right}
+.cathead .ch{flex:0 0 auto;letter-spacing:.02em}
+.catrow.zero .cn{color:var(--label3)}
 .fold{display:flex;align-items:center;gap:6px;width:100%;padding:0 16px 0;font-size:13px;color:var(--label2)}
 .fold .chev{transition:transform 200ms var(--out)}
 .fold.open .chev{transform:rotate(90deg)}
@@ -101,7 +118,6 @@ button{background:none;border:0;cursor:pointer;touch-action:manipulation}
 .gbar{position:relative;overflow:hidden;display:flex;align-items:center;gap:8px;min-width:0;
   background:rgba(0,122,255,.11);border-radius:9px;padding:8px 10px;
   border-left:3px solid var(--blue);transition:background 120ms ease}
-.gbar.sh{background:rgba(255,59,48,.10);border-left-color:var(--red)}
 .gbar .gf{position:absolute;left:0;top:0;bottom:0;background:rgba(0,122,255,.14);pointer-events:none}
 .gbar .gt{position:relative;flex:1;min-width:0;text-align:left;font-size:14px;line-height:1.3;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:none;border:0;padding:0}
@@ -143,7 +159,7 @@ button{background:none;border:0;cursor:pointer;touch-action:manipulation}
 .tsk .tt{flex:1;min-width:0;text-align:left;display:block;padding:0}
 .tsk .ttl{display:block;font-size:15px;line-height:1.36;letter-spacing:-.01em;word-break:keep-all;overflow-wrap:anywhere}
 .tsk.done .ttl{color:var(--label2);text-decoration:line-through}
-.tsk .mt{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12px;color:var(--label2);margin-top:4px;line-height:1.3}
+.tsk .mt{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--label2);margin-top:5px;line-height:1.3}
 .tsk .mt .tm{font-variant-numeric:tabular-nums;color:var(--label)}
 .dot{width:6px;height:6px;border-radius:3px;flex:0 0 auto;background:var(--blue)}
 .sepdot{color:var(--label3)}
@@ -186,7 +202,8 @@ button{background:none;border:0;cursor:pointer;touch-action:manipulation}
   box-shadow:0 2px 5px rgba(0,0,0,.2);transition:transform 220ms var(--drawer)}
 .swrow.on .sw{background:var(--red)}
 .swrow.on .sw i{transform:translateX(18px)}
-.shbadge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;background:rgba(255,59,48,.13);color:var(--red);white-space:nowrap}
+.keybadge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;background:rgba(0,122,255,.13);color:#0062CC;white-space:nowrap}
+.swrow.key.on .sw{background:var(--blue)}
 
 .m3{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
 @media(max-width:640px){.m3{grid-template-columns:1fr}}
@@ -276,24 +293,22 @@ body.ro .tsk .tt,body.ro .row .t{pointer-events:none}
   </div>
 
   <div class="seg" id="seg"><div class="thumb" id="thumb"></div>
-    <button class="on">요일별</button><button>지점별</button><button>금요일 결산</button></div>
+    <button class="on">주간캘린더</button><button>계획</button><button>월간 결산</button></div>
 
     <div class="grp"><h2>계획 외</h2>
       <div class="quick">
         <select id="qPlace"><option value="공통">공통</option><option value="화정">화정</option><option value="돌곶이">돌곶이</option><option value="회기">회기</option></select>
+        <select id="qCat"></select>
         <input type="text" id="qTitle" placeholder="방금 한 일" enterkeyhint="done">
         <select id="qDay"></select>
         <button id="qAdd">기록</button>
       </div></div>
 
-    <div class="grp"><h2>매일 반복</h2><div class="list" id="dailyList"></div></div>
-
+  
   <div id="tab-day">
     <div class="grp hide" id="gGantt"><div class="gantt" id="gantt"></div></div>
 
     <div class="grp"><div class="board" id="board"></div></div>
-
-    <div class="grp hide" id="gShare"><h2>공유 필요</h2><div class="list" id="shareNeed"></div></div>
 
     <div class="grp"><button class="fold" id="unFold"><span id="unLab">요일 안 정한 일</span><span class="chev" id="unChev">›</span></button>
       <div class="list hide" id="unassigned" style="margin-top:8px"></div></div>
@@ -306,17 +321,18 @@ body.ro .tsk .tt,body.ro .row .t{pointer-events:none}
         <div class="fields">
           <div class="fld"><label for="nPlace">지점</label><select id="nPlace">
             <option value="공통">3지점 공통</option><option value="화정">화정</option><option value="돌곶이">돌곶이</option><option value="회기">회기</option></select></div>
+          <div class="fld"><label for="nCat">카테고리</label><select id="nCat"></select></div>
           <div class="fld" id="wDay"><label for="nDay">요일</label><select id="nDay">
             <option value="">미정</option><option value="0">월요일</option><option value="1">화요일</option><option value="2">수요일</option><option value="3">목요일</option><option value="4">금요일</option></select></div>
         </div>
         <div class="fields hide" id="more">
           <div class="fld"><label for="nKind">종류</label><select id="nKind">
-            <option value="todo">할 일</option><option value="event">일정·회의</option><option value="daily">매일 반복</option></select></div>
+            <option value="todo">할 일</option><option value="event">일정·회의</option></select></div>
           <div class="fld" id="wEnd"><label for="nEnd">끝 요일</label><select id="nEnd">
             <option value="">하루 안에</option><option value="0">월요일</option><option value="1">화요일</option><option value="2">수요일</option><option value="3">목요일</option><option value="4">금요일</option></select></div>
           <div class="fld hide" id="wTime"><label for="nTime">시간</label><input type="time" id="nTime"></div>
         </div>
-        <button class="swrow hide" id="nShare"><span class="sw"><i></i></span><span>공유 필요</span></button>
+        <button class="swrow key hide" id="nKey"><span class="sw"><i></i></span><span>핵심 업무</span></button>
         <div class="addfoot"><button class="link" id="moreBtn">자세히</button><button class="prim" id="addBtn">추가</button></div>
       </div>
     </div>
@@ -325,19 +341,12 @@ body.ro .tsk .tt,body.ro .row .t{pointer-events:none}
   </div>
 
   <div id="tab-review" class="hide">
-    <div class="grp"><h2>이번 주 결과</h2>
-      <div class="m3">
-        <div class="m"><label>계획한 일 달성률</label><div class="big" id="rCore">—</div><p>계획해 둔 일 중 끝낸 비율입니다.</p></div>
-        <div class="m"><label>생각보다 오래 걸린 비율</label><div class="big" id="rSlow">—</div><p>절반을 넘으면 하루에 얹는 개수가 현실보다 많습니다.</p></div>
-        <div class="m"><label>계속 끊긴 비율</label><div class="big" id="rBusy">—</div><p>일이 어려운 게 아니라 자리를 못 지킨 겁니다. 개수보다 이걸 먼저 보세요.</p></div>
-        <div class="m"><label>진행 중인 일</label><div class="big" id="rIng">—</div><p id="rIngP"></p></div>
-        <div class="m"><label>계획 외</label><div class="big" id="rAdhoc">—</div><p id="rAdhocP">계획에 없던 일이 끼어든 양입니다. 이게 높으면 계획이 틀린 게 아니라 계획할 수 없는 구조입니다.</p></div>
-      </div>
-      <div class="foot" id="reviewHint"></div>
-      <div id="advice" style="margin-top:12px"></div>
-      <div id="carryAlert" style="margin-top:12px"></div></div>
+    <div id="carryAlert"></div>
+
+    <div class="grp"><h2 id="catTitle">카테고리 분포</h2><div class="list" id="catBox" style="padding:14px 16px"></div>
+      <div id="catAlert" style="margin-top:12px"></div></div>
     <div class="grp"><h2>하루에 얹는 할 일 개수</h2>
-      <div class="list" id="capRow"><div class="row"><span class="t">한도<small>회의·매일 반복은 빼고 셉니다</small></span>
+      <div class="list" id="capRow"><div class="row"><span class="t">한도<small>회의는 빼고 셉니다</small></span>
         <div style="display:flex;gap:8px;align-items:center">
           <button class="chk" data-cap="-1" style="border-color:var(--label3)">−</button>
           <span class="mono" id="capV" style="min-width:34px;text-align:center"></span>
@@ -353,6 +362,10 @@ body.ro .tsk .tt,body.ro .row .t{pointer-events:none}
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const DAYS=['월','화','수','목','금'],KEY='weekplan-v3';
 const PLACES=['공통','화정','돌곶이','회기'];
+const CATS=['상담·세일즈','리드관리','회원관리','마케팅','전략운영','내부직원관리','시설관리'];
+const CATC={'상담·세일즈':'#FF3B30','리드관리':'#FF9500','회원관리':'#34C759','마케팅':'#AF52DE','전략운영':'#007AFF','내부직원관리':'#30B0C7','시설관리':'#A2845E'};
+const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')'};
+const catChip=c=>(c&&CATC[c])?'<span class="cchip" style="color:'+CATC[c]+';background:'+hexA(CATC[c],.14)+'">'+c+'</span>':'';
 const SPOTS=['화정','돌곶이','회기','미정','외부회의','출장','휴무'];
 function routeTxt(r){
   const out=[];
@@ -361,7 +374,7 @@ function routeTxt(r){
     out.push(p)});
   return out.join('>');
 }
-const KINDS={todo:'할 일',event:'일정·회의',daily:'매일 반복',adhoc:'계획 외'};
+const KINDS={todo:'할 일',event:'일정·회의',adhoc:'계획 외'};
 const PROG=[{v:0,l:'시작 전'},{v:25,l:'조금 했다'},{v:50,l:'절반쯤'},{v:75,l:'거의 다'},{v:100,l:'다 했어요'}];
 const progLabel=v=>(PROG.find(x=>x.v===v)||PROG.reduce((a,b)=>Math.abs(b.v-v)<Math.abs(a.v-v)?b:a)).l;
 const FEEL={fast:'생각보다 빨리',same:'예상과 비슷',slow:'훨씬 오래'};
@@ -416,6 +429,7 @@ async function load(){
   let raw=null;try{raw=await readRaw()}catch(e){}
   try{S=raw?JSON.parse(raw):blank()}catch(e){S=blank()}
   if(!S||!S.cap)S=blank();
+  Object.values(S.weeks||{}).forEach(w=>(w.items||[]).forEach(i=>{if(i.kind==='daily')i.kind='todo'}));
   canStore=mode!=='none';
   if(!canStore)$('#nostore').classList.remove('hide');
 }
@@ -428,24 +442,12 @@ let sT;function save(){if(RO)return;clearTimeout(sT);sT=setTimeout(async()=>{
 function render(){
   $('#wklab').textContent=label();
   $('#thisWeek').classList.toggle('hide',!isThisWeek());
-  shareNeed();gantt();board();foldUI();unassigned();daily();lanes();review();qDefault();save();
-}
-function shareNeed(){
-  const L=week().items.filter(i=>isSh(i)&&i.kind!=='daily');
-  $('#shareNeed').innerHTML=L.length?L.map(i=>
-    '<div class="row '+(i.done?'done':'')+'">'+
-    chkHTML(i)+
-    '<span class="pl '+i.place+'">'+i.place+'</span>'+
-    '<button class="t tapme" data-edit="'+i.id+'" style="text-align:left"><span>'+esc(i.title)+'</span><small>'+
-    (!i.done&&i.prog>0?i.prog+'% · ':'')+(i.day!=null?DAYS[i.day]+'요일':'요일 안 정함')+(i.carry?' · '+i.carry+'주 밀림':'')+'</small></button>'+
-    '<span class="chev">›</span></div>').join('')
-    :'<div class="blank">지금은 없습니다. 리소스가 과한 일이 생기면 단계를 ‘공유 필요’로 올리세요.</div>';
+  gantt();board();foldUI();catBox();unassigned();lanes();review();qDefault();save();
 }
 
 function foldUI(){
   const un=week().items.filter(i=>i.kind!=='daily'&&i.day==null).length;
   $('#unLab').textContent='요일 안 정한 일'+(un?' '+un:'');
-  $('#gShare').classList.toggle('hide',!week().items.some(i=>isSh(i)&&i.kind!=='daily'));
   $('#gGantt').classList.toggle('hide',!week().items.some(i=>i.kind==='todo'&&spanOf(i)));
 }
 function gantt(){
@@ -454,7 +456,7 @@ function gantt(){
   const head='<div class="gh">'+DAYS.map((d,x)=>'<span class="'+(x===ti?'nowd':'')+'">'+d+'</span>').join('')+'</div>';
   $('#gantt').innerHTML=head+(L.length?L.map(i=>{const sp=spanOf(i);
     const p=i.done?100:(+i.prog||0);
-    return '<div class="grow"><div class="gbar '+(isSh(i)?'sh ':'')+(i.done?'done':'')+'" style="grid-column:'+(sp[0]+1)+'/'+(sp[1]+2)+'">'+
+    return '<div class="grow"><div class="gbar '+(i.done?'done':'')+'" style="grid-column:'+(sp[0]+1)+'/'+(sp[1]+2)+'">'+
       (p>0&&!i.done?'<span class="gf" style="width:'+p+'%"></span>':'')+
       chkHTML(i)+'<button class="gt" data-edit="'+i.id+'">'+esc(i.title)+'</button>'+
       '<span class="pl '+i.place+'">'+i.place+'</span></div></div>'}).join('')
@@ -478,7 +480,7 @@ function board(){
         '<div class="tsk '+(i.done?'done':'')+'">'+
         chkHTML(i,1)+
         '<button class="tt" data-edit="'+i.id+'"><span class="ttl">'+esc(i.title)+'</span>'+
-        '<span class="mt">'+(i.time?'<span class="tm">'+hm(i.time)+'</span><span class="sepdot">·</span>':'')+
+        '<span class="mt">'+catChip(i.cat)+(i.time?'<span class="tm">'+hm(i.time)+'</span><span class="sepdot">·</span>':'')+
         esc(i.place)+'</span></button></div>').join(''):'')+
       '<div class="secline">할 일</div><div class="cnt">'+pips+'</div>'+
       (over?'<div class="overhint">하루 한도 '+cap+'개를 넘었습니다. 옮기거나 ‘안 함’으로 내리세요.</div>':'')+
@@ -486,17 +488,16 @@ function board(){
         return '<div class="tsk '+(i.done?'done':'')+'">'+
         chkHTML(i,1)+
         '<button class="tt" data-edit="'+i.id+'"><span class="ttl">'+esc(i.title)+'</span>'+
-        '<span class="mt">'+progTxt(i)+(isSh(i)?'<span class="shbadge">공유 필요</span>':'')+
+        '<span class="mt">'+catChip(i.cat)+(i.key?'<span class="keybadge">핵심</span>':'')+progTxt(i)+
         esc(i.place)+(i.carry?'<span class="sepdot">·</span><span style="color:var(--red)">'+i.carry+'주 밀림</span>':'')+
         '</span></button></div>'}).join('')
         :'<div class="blank" style="padding:12px 10px;font-size:13px">비어 있음</div>')+
       (ad.length?'<div class="secline">계획 외</div>'+ad.map(i=>
         '<div class="tsk"><i class="dot ad" style="margin-top:6px"></i>'+
         '<button class="tt" data-edit="'+i.id+'"><span class="ttl">'+esc(i.title)+'</span>'+
-        '<span class="mt">'+esc(i.place)+'</span></button></div>').join(''):'')+'</div>';
+        '<span class="mt">'+catChip(i.cat)+esc(i.place)+'</span></button></div>').join(''):'')+'</div>';
   }).join('');
 }
-const isSh=i=>!!(i.share||i.tier==3);
 const spanOf=i=>(i.dayEnd!=null&&i.day!=null&&i.dayEnd>i.day)?[i.day,i.dayEnd]:null;
 const onDay=(i,x)=>i.day===x;
 const spanTxt=i=>{const sp=spanOf(i);return sp?DAYS[sp[0]]+'→'+DAYS[sp[1]]:''};
@@ -514,7 +515,7 @@ function chkHTML(i,small){
   return '<button class="chk '+cls+'" data-fin="'+i.id+'"'+st+' aria-label="진행 상태">'+
     (i.done?'✓':(p>0?ringSVG(p):''))+'</button>'}
 const progTxt=i=>(!i.done&&i.prog>0)?'<span class="prog">'+i.prog+'%</span><span class="sepdot">·</span>':'';
-const metaOf=i=>[isSh(i)?'공유 필요':null,KINDS[i.kind],
+const metaOf=i=>[i.cat||null,KINDS[i.kind],
   spanOf(i)?spanTxt(i)+'요일':(i.day!=null?DAYS[i.day]+'요일':(i.kind!=='daily'?'요일 안 정함':null)),
   i.time?hm(i.time):null].filter(Boolean).join(' · ');
 
@@ -528,15 +529,6 @@ function unassigned(){
     '<small>'+(!i.done&&i.prog>0?i.prog+'% · ':'')+metaOf(i)+'</small></button><span class="chev">›</span></div>').join('')
     :'<div class="blank">요일을 안 정한 일이 없습니다.</div>';
 }
-function daily(){
-  const L=week().items.filter(i=>i.kind==='daily');
-  $('#dailyList').innerHTML=L.length?L.map(i=>{i.checks=i.checks||[0,0,0,0,0];
-    return '<div class="row"><span class="pl '+i.place+'">'+i.place+'</span>'+
-      '<span class="t tapme" data-edit="'+i.id+'" style="cursor:pointer">'+esc(i.title)+'</span><div class="dayck">'+
-      DAYS.map((d,x)=>'<button data-ck="'+i.id+'" data-d="'+x+'" class="'+(i.checks[x]?'on':'')+'" aria-label="'+d+'요일">'+d+'</button>').join('')+
-      '</div></div>'}).join('')
-    :'<div class="blank"><b>매일 도는 일을 넣어보세요</b>미스DB 확인, 마감매출 점검처럼 안 하면 그날 사고가 나는 일입니다.</div>';
-}
 function lanes(){
   $('#lanes').innerHTML=PLACES.map(p=>{
     const L=week().items.filter(i=>i.place===p);
@@ -547,35 +539,55 @@ function lanes(){
         '<small>'+metaOf(i)+(i.carry?' · '+i.carry+'주 밀림':'')+'</small></button>'+
         '<span class="chev">›</span></div>').join(''):'<div class="blank">아직 없습니다.</div>')+'</div></div>'}).join('');
 }
+function catStats(){
+  const m=S.cur.slice(0,7);
+  const span=Object.keys(S.weeks).filter(k=>k.slice(0,7)===m).sort();
+  if(!span.includes(S.cur)){span.push(S.cur);span.sort()}
+  const cnt=(wk,c)=>(S.weeks[wk]?S.weeks[wk].items:[]).filter(i=>i.kind!=='event'&&(i.cat||'')===c).length;
+  const sum=c=>span.reduce((a,w)=>a+cnt(w,c),0);
+  return {span,cnt,sum};
+}
+function catBox(){
+  const {span,cnt,sum}=catStats();
+  const mo=+S.cur.slice(5,7);
+  $('#catTitle').textContent=mo+'월 카테고리 분포';
+  const rows=CATS.concat(['']);
+  const cur=rows.map(c=>sum(c));
+  const all=cur.reduce((a,b)=>a+b,0);
+  const max=Math.max(1,...cur);
+  const maxAll=Math.max(1,...span.flatMap(w=>rows.map(c=>cnt(w,c))));
+  let h='<div class="cathead"><span class="cdot" style="background:none"></span><span class="cn"></span><span class="cb"></span><span class="cv"></span>'+
+    '<span class="ch">'+(span.length>1?'주차별':'')+'</span><span class="cp">비중</span></div>';
+  h+=rows.map((c,x)=>{
+    const n=cur[x];
+    const heat=span.map(w=>{const v=cnt(w,c);
+      return '<span title="'+v+'" style="'+(v?'background:rgba(0,122,255,'+(0.18+0.72*v/maxAll).toFixed(2)+')':'')+'"></span>'}).join('');
+    return '<div class="catrow '+(n?'':'zero')+'">'+
+      '<span class="cdot" style="background:'+(CATC[c]||'rgba(120,120,128,.3)')+';opacity:'+(n?1:.3)+'"></span>'+
+      '<span class="cn">'+(c||'미분류')+'</span>'+
+      '<span class="cb"><i style="width:'+(n/max*100)+'%;background:'+(CATC[c]||'var(--gray)')+'"></i></span>'+
+      '<span class="cv">'+n+'</span><span class="ch">'+heat+'</span>'+
+      '<span class="cp">'+(all?Math.round(n/all*100)+'%':'—')+'</span></div>'}).join('');
+  $('#catBox').innerHTML=h;
+
+  const tot=cur.slice(0,CATS.length).reduce((a,b)=>a+b,0);
+  const un=cur[CATS.length];
+  let msg='';
+  if(un>0&&tot===0)msg='카테고리를 붙인 일이 없습니다. 항목을 눌러 카테고리를 정해보세요.';
+  else if(tot){
+    const dead=CATS.filter((c,x)=>cur[x]===0);
+    const top=CATS.map((c,x)=>[c,cur[x]]).sort((a,b)=>b[1]-a[1])[0];
+    const pct=Math.round(top[1]/tot*100);
+    msg=(pct>=40?'<b>'+top[0]+'이(가) '+pct+'%로 쏠려 있습니다.</b><br>':'')+
+      (dead.length?mo+'월 0건: '+dead.join(', '):'');
+    if(un)msg+=(msg?'<br>':'')+'미분류 '+un+'건이 집계에서 빠져 있습니다.';
+  }
+  $('#catAlert').innerHTML=msg?'<div class="tip">'+msg+'</div>':'';
+}
 function review(){
   $('#capV').textContent=S.cap+'개';
-  const done=week().items.filter(i=>i.kind!=='daily'&&i.done&&i.feel);
-  const t1=week().items.filter(i=>(i.kind==='todo'||i.kind==='event'));
-  const core=t1.length?Math.round(t1.filter(i=>i.done).length/t1.length*100):null;
-  const slow=done.length?Math.round(done.filter(i=>i.feel==='slow').length/done.length*100):null;
-  const busy=done.length?Math.round(done.filter(i=>i.busy==='many').length/done.length*100):null;
-  $('#rCore').textContent=core==null?'—':core+'%';
-  $('#rSlow').textContent=slow==null?'—':slow+'%';
-  $('#rBusy').textContent=busy==null?'—':busy+'%';
-  const ing=week().items.filter(i=>!i.done&&i.prog>0&&i.kind!=='daily'&&i.kind!=='adhoc');
-  $('#rIng').textContent=ing.length?ing.length+'개':'—';
-  $('#rIngP').textContent=ing.length?'평균 '+Math.round(ing.reduce((a,i)=>a+i.prog,0)/ing.length)+'%까지 와 있습니다. 다음 주로 넘기면 진행도가 그대로 따라갑니다.'
-    :'손댄 채로 남아 있는 일이 없습니다.';
-  const adN=week().items.filter(i=>i.kind==='adhoc').length;
-  const plN=week().items.filter(i=>(i.kind==='todo'||i.kind==='event')&&i.done).length;
-  $('#rAdhoc').textContent=adN?adN+'개':'—';
-  $('#rAdhocP').textContent=adN?'이번 주에 끝낸 일 '+(adN+plN)+'개 중 '+Math.round(adN/(adN+plN)*100)+'%가 계획에 없던 일입니다.'
-    :'계획에 없던 일이 생기면 “그때그때 한 일”에 기록하세요. 여기에 비율이 나옵니다.';
-  $('#reviewHint').textContent=done.length?'끝낸 일 '+done.length+'개의 기록으로 계산했습니다.'
-    :'아직 기록이 없습니다. 일을 끝낼 때마다 두 가지만 골라두면 여기에 숫자가 나옵니다.';
-  let tip='';
-  if(busy!=null&&busy>=50)tip='절반 이상이 계속 끊긴 채 진행됐습니다. 개수를 줄이기 전에, 하루 한 번이라도 방해받지 않는 시간을 만들 수 있는지부터 보세요.||';
-  else if(slow!=null&&slow>=50&&S.cap>1)tip='끝낸 일의 절반 이상이 생각보다 오래 걸렸습니다. 하루에 얹는 개수가 현실보다 많습니다.|하루 '+(S.cap-1)+'개로 줄이기|-1';
-  else if(core===100&&slow!=null&&slow<30&&done.length>=3)tip='계획한 일을 다 끝냈고 예상도 잘 맞았습니다. 한 개 늘려볼 만합니다.|하루 '+(S.cap+1)+'개로 늘리기|1';
-  const p=tip.split('|');
-  $('#advice').innerHTML=tip?'<div class="tip">'+p[0]+(p[1]?'<button data-cap="'+p[2]+'">'+p[1]+'</button>':'')+'</div>':'';
   const risk=week().items.filter(i=>(i.carry||0)>=3&&!i.done);
-  $('#carryAlert').innerHTML=risk.length?'<div class="alert"><b>3주째 밀리고 있습니다 — 이제 결정하세요</b><br>'+
+  $('#carryAlert').innerHTML=risk.length?'<div class="alert" style="margin-bottom:24px"><b>3주째 밀리고 있습니다 — 이제 결정하세요</b><br>'+
     risk.map(i=>'· '+esc(i.title)).join('<br>')+'<br><br>버리거나, 남에게 넘기거나, 날짜를 박으세요.</div>':'';
   $('#hist').innerHTML=S.hist.length?S.hist.slice(-8).reverse().map(h=>
     '<div class="row"><span class="t" style="font-size:15px">'+h.title+'</span><span class="t" style="flex:0 0 auto;font-size:13px;color:var(--label2)">달성 '+h.core+' · 오래 '+h.slow+'</span></div>').join('')
@@ -594,7 +606,7 @@ function shareText(branch){
   const want=branch&&branch!=='전체'?['공통',branch]:PLACES;
   const inScope=i=>want.includes(i.place);
   const line=i=>'-'+(spanOf(i)?'('+spanTxt(i)+') ':'')+(i.time?hm(i.time)+' ':'')+i.title+
-    (isSh(i)?' *공유 필요':'')+(!i.done&&i.prog>0?' (진행 '+i.prog+'%)':'');
+    (!i.done&&i.prog>0?' (진행 '+i.prog+'%)':'');
   const block=(L)=>{let o='';
     want.forEach(p=>{
       const G=L.filter(i=>i.place===p);
@@ -606,15 +618,22 @@ function shareText(branch){
     return o};
 
   const plan=i=>i.kind!=='adhoc'&&i.kind!=='daily'&&inScope(i);
+
+  let ks='';
+  want.forEach(p=>{
+    const K=W.items.filter(i=>i.key&&plan(i)&&i.place===p);
+    if(K.length)ks+='-'+p+': '+K.map(i=>i.title).join(', ')+'\n'});
+  if(ks)s+='\n[핵심 업무]\n'+ks;
+
+  let body='';
   DAYS.forEach((d,x)=>{
     const L=W.items.filter(i=>plan(i)&&i.day===x);
     if(!L.length)return;
     const dt=dOf(x),t=routeTxt(W.route[x]);
-    s+='\n'+(dt.getMonth()+1)+'/'+dt.getDate()+'('+d+')'+(t?' : '+t:'')+'\n'+block(L);
+    body+='\n'+(dt.getMonth()+1)+'/'+dt.getDate()+'('+d+')'+(t?' : '+t:'')+'\n'+block(L);
   });
+  if(body)s+='\n[일자별 업무]'+body;
 
-  const dl=W.items.filter(i=>i.kind==='daily'&&inScope(i));
-  if(dl.length)s+='\n[매일 반복]\n'+block(dl).replace(/^\[.*\]\n/gm,'');
 
   const un=W.items.filter(i=>plan(i)&&i.day==null);
   if(un.length)s+='\n[요일 미정]\n'+block(un);
@@ -656,26 +675,29 @@ $('#addBtn').onclick=()=>{
   const k=$('#nKind').value,dv=$('#nDay').value;
   const evx=$('#nEnd').value;
   const st=(k!=='daily'&&dv!=='')?+dv:null;
-  week().items.push({id:uid(),title:t,place:$('#nPlace').value,kind:k,share:shareOn,
+  week().items.push({id:uid(),title:t,place:$('#nPlace').value,cat:$('#nCat').value,kind:k,key:keyOn,
     day:st,dayEnd:(k==='todo'&&st!=null&&evx!==''&&+evx>st)?+evx:null,
     time:k==='event'?$('#nTime').value:null,
     done:false,prog:0,feel:null,busy:null,carry:0,checks:[0,0,0,0,0]});
-  $('#nTitle').value='';$('#nEnd').value='';shareOn=false;$('#nShare').classList.remove('on');$('#nTitle').focus();tap();render();toast('“'+t+'” 추가됨',null)};
+  $('#nTitle').value='';$('#nEnd').value='';keyOn=false;
+  $('#nKey').classList.remove('on');$('#nTitle').focus();tap();render();toast('“'+t+'” 추가됨',null)};
 const isIME=e=>e.isComposing||e.keyCode===229;
-let shareOn=false;
-$('#nShare').onclick=()=>{shareOn=!shareOn;$('#nShare').classList.toggle('on',shareOn);tap()};
+let keyOn=false;
+$('#nKey').onclick=()=>{keyOn=!keyOn;$('#nKey').classList.toggle('on',keyOn);tap()};
 $('#moreBtn').onclick=()=>{const m=$('#more').classList.toggle('hide');
-  $('#nShare').classList.toggle('hide',m);
+  $('#nKey').classList.toggle('hide',m);
   $('#moreBtn').textContent=m?'자세히':'접기'};
 $('#unFold').onclick=()=>{const h=$('#unassigned').classList.toggle('hide');
   $('#unFold').classList.toggle('open',!h)};
 $('#nTitle').addEventListener('keydown',e=>{if(e.key==='Enter'&&!isIME(e))$('#addBtn').click()});
 
+const catOpts='<option value="">미분류</option>'+CATS.map(c=>'<option value="'+c+'">'+c+'</option>').join('');
+$('#nCat').innerHTML=catOpts;$('#qCat').innerHTML=catOpts;
 $('#qDay').innerHTML=DAYS.map((d,x)=>'<option value="'+x+'">'+d+'</option>').join('');
 function qDefault(){const t=isThisWeek()?todayIdx():-1;$('#qDay').value=String(t>=0?t:0)}
 $('#qAdd').onclick=()=>{
   const t=$('#qTitle').value.trim();if(!t){$('#qTitle').focus();return}
-  week().items.push({id:uid(),title:t,place:$('#qPlace').value,kind:'adhoc',share:false,
+  week().items.push({id:uid(),title:t,place:$('#qPlace').value,cat:$('#qCat').value,kind:'adhoc',share:false,
     day:+$('#qDay').value,time:null,done:true,feel:null,busy:null,carry:0,checks:[0,0,0,0,0]});
   $('#qTitle').value='';$('#qTitle').focus();tap();render();toast('“'+t+'” 기록했습니다',null)};
 $('#qTitle').addEventListener('keydown',e=>{if(e.key==='Enter'&&!isIME(e))$('#qAdd').click()});
@@ -787,10 +809,12 @@ function editSheet(item){
     '<div class="field"><label>이름</label><input type="text" id="eT" value="'+esc(item.title)+'"></div>'+
     '<div class="field"><label>지점</label><div class="opts">'+
       PLACES.map(p=>o('place',p,p==='공통'?'공통':p,item.place===p)).join('')+'</div></div>'+
+    '<div class="field"><label>카테고리</label><div class="opts" style="flex-wrap:wrap">'+
+      o('cat','','미분류',!item.cat)+CATS.map(c=>o('cat',c,c,item.cat===c)).join('')+'</div></div>'+
     '<div class="field"><label>종류</label><div class="opts">'+
       Object.keys(KINDS).map(k=>o('kind',k,KINDS[k],item.kind===k)).join('')+'</div>'+
       '</div>'+
-    '<button class="swrow '+(isSh(item)?'on':'')+'" id="eShare"><span class="sw"><i></i></span><span>공유 필요</span></button>'+
+    '<button class="swrow key '+(item.key?'on':'')+'" id="eKey"><span class="sw"><i></i></span><span>핵심 업무</span></button>'+
     '<div class="field '+(item.kind==='daily'?'hide':'')+'" id="fDay"><label>요일</label><div class="opts">'+
       o('day','','미정',item.day==null)+DAYS.map((d,x)=>o('day',x,d,item.day===x)).join('')+'</div></div>'+
     '<div class="field '+(item.kind==='todo'?'':'hide')+'" id="fEnd"><label>끝 요일 — 여러 날에 걸치는 일</label><div class="opts">'+
@@ -801,19 +825,20 @@ function editSheet(item){
     '<div class="sbtns"><button id="eC">취소</button><button class="p" id="eS">저장</button></div>'+
     '<button class="danger" id="eD">삭제</button>',
   close=>{
-    let place=item.place,kind=item.kind,day=item.day,dend=item.dayEnd,sh=isSh(item);
+    let place=item.place,cat=item.cat||'',kind=item.kind,day=item.day,dend=item.dayEnd,kf=!!item.key;
     $('#host').querySelectorAll('.opts button').forEach(b=>b.onclick=()=>{
       const g=b.dataset.g,v=b.dataset.v;
       b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
       if(g==='place')place=v;
+      if(g==='cat')cat=v;
       if(g==='kind'){kind=v;$('#fDay').classList.toggle('hide',v==='daily');$('#fEnd').classList.toggle('hide',v!=='todo');$('#fTime').classList.toggle('hide',v!=='event');}
       if(g==='dend')dend=v===''?null:+v;
       if(g==='day')day=v===''?null:+v;
       tap()});
-    if($('#eShare'))$('#eShare').onclick=()=>{sh=!sh;$('#eShare').classList.toggle('on',sh);tap()};
+    if($('#eKey'))$('#eKey').onclick=()=>{kf=!kf;$('#eKey').classList.toggle('on',kf);tap()};
     $('#eC').onclick=()=>close();
     $('#eS').onclick=()=>{const t=$('#eT').value.trim();if(!t){$('#eT').focus();return}
-      item.title=t;item.place=place;item.kind=kind;item.share=sh;item.tier=undefined;
+      item.title=t;item.place=place;item.cat=cat;item.kind=kind;item.key=kf;item.tier=undefined;
       item.day=kind==='daily'?null:day;
       item.dayEnd=(kind==='todo'&&day!=null&&dend!=null&&dend>day)?dend:null;
       item.time=kind==='event'?$('#eTime').value:null;
@@ -830,10 +855,10 @@ function editSheet(item){
 
 let shBranch='화정';
 $('#shareBtn').onclick=()=>present(
-  '<h3>공유용 정리</h3><div class="sub">공통 + 선택한 지점만 들어갑니다.</div>'+
+  '<h3>공유용 정리</h3><div class="sub">공통 + 선택한 지점만 들어갑니다. 글을 직접 고친 뒤 복사해도 됩니다.</div>'+
   '<div class="field"><div class="opts">'+['화정','돌곶이','회기','전체'].map(b=>
     '<button data-b="'+b+'" class="'+(shBranch===b?'on':'')+'">'+b+'</button>').join('')+'</div></div>'+
-  '<textarea class="share" id="shTxt" readonly></textarea>'+
+  '<textarea class="share" id="shTxt" spellcheck="false"></textarea>'+
   '<div class="sbtns"><button id="shC">닫기</button><button class="p" id="shK">복사</button></div>',
   close=>{
     const draw=()=>$('#shTxt').value=shareText(shBranch);
@@ -844,17 +869,17 @@ $('#shareBtn').onclick=()=>present(
       tap();draw()});
     $('#shC').onclick=()=>close();
     $('#shK').onclick=async()=>{const t=$('#shTxt');
-      try{await navigator.clipboard.writeText(t.value)}catch(e){t.removeAttribute('readonly');t.select();document.execCommand('copy');t.setAttribute('readonly','')}
+      try{await navigator.clipboard.writeText(t.value)}catch(e){t.select();document.execCommand('copy')}
       tap();close();setTimeout(()=>toast('복사했습니다',null),60)}});
 
 $('#help').onclick=()=>present(
   '<h3>어떻게 쓰나요</h3><div class="sub">주간 동선 공유를 그대로 옮긴 구조입니다.</div><div class="doc">'+
-  '<h4>먼저 동선을 정합니다</h4><p>요일 카드에서 지점 배지를 누르고, 그날 가는 순서대로 고르세요. 돌곶이 갔다가 회기면 두 번 누르면 됩니다.</p>'+
-  '<h4>할 일은 지점에 붙습니다</h4><p>3지점 공통·화정·돌곶이·회기 중 하나를 고릅니다. 지점별 탭에서 그 지점 일만 모아 볼 수 있고, 공유용 정리도 이 순서로 나옵니다.</p>'+
+  '<h4>먼저 동선을 정합니다</h4><p>요일 카드에서 지점 배지를 누르고, 그날 가는 순서대로 고르세요. 돌곶이 갔다가 회기면 두 번 누르면 됩니다. 외부회의는 바로 앞 지점에 괄호로 붙고, 아직 못 정한 날은 미정으로 둡니다.</p>'+
+  '<h4>할 일에는 지점과 카테고리를 답니다</h4><p>지점은 공유문을 지점별로 쪼개 보낼 때 쓰고, 카테고리는 월간 결산에서 업무가 한쪽으로 쏠렸는지 보는 데 씁니다.</p>'+
   '<h4>회의는 시간이, 할 일은 개수가 붙습니다</h4><p>회의·미팅은 시간을 넣으면 요일 카드 위쪽에 시간순으로 붙습니다. 나머지 할 일은 하루 몇 개까지 얹을지만 정해두고, 넘으면 빨갛게 알려줍니다. 시간 견적은 내지 않습니다 — 현장에서 즉답하며 도는 하루에는 맞을 수가 없으니까요.</p>'+
-  '<h4>우선순위는 셋 중 하나입니다</h4><p>무리 없이 / 무리하면 / 공유 필요. ‘공유 필요’는 안 하는 일이 아니라, 혼자 삼키면 안 되는 일입니다. 보드 맨 위와 공유용 정리 맨 아래에 따로 모입니다.</p>'+
-  '<h4>끝낼 때는 두 번만 누릅니다</h4><p>예상보다 빨랐는지 오래였는지, 하는 중에 끊겼는지. 이 두 가지가 다음 주 개수를 정합니다.</p>'+
-  '<h4>공유용 정리</h4><p>위쪽 “공유용 정리”를 누르면 동선과 지점별 목록이 공유하는 형식 그대로 만들어집니다. 복사해서 붙여넣으면 됩니다.</p></div>'+
+  '<h4>핵심 업무</h4><p>항목을 눌러 스위치를 켜면 공유문 맨 위 [핵심 업무]에 지점별로 묶여 올라갑니다.</p>'+
+  '<h4>진행 상태</h4><p>동그라미를 누르면 어디까지 됐는지 밀어서 정합니다. 끝내지 못한 일은 다음 주로 넘길 때 진행도를 그대로 들고 갑니다. 3주째 밀린 일은 월간 결산 맨 위에 경고로 뜹니다.</p>'+
+  '<h4>공유용 정리</h4><p>지점을 고르면 공통 + 그 지점만 들어갑니다. 글을 직접 고친 뒤 복사해도 되고, 지점 버튼을 다시 누르면 원래대로 돌아옵니다.</p></div>'+
   '<div class="sbtns"><button class="p" id="hC">알겠습니다</button></div>',
   close=>{$('#hC').onclick=()=>close()});
 
@@ -865,9 +890,8 @@ $('#rollBtn').onclick=()=>{
     core:t1.length?Math.round(t1.filter(i=>i.done).length/t1.length*100)+'%':'—',
     slow:done.length?Math.round(done.filter(i=>i.feel==='slow').length/done.length*100)+'%':'—'});
   const carry=week().items.filter(i=>!i.done&&i.kind!=='daily').map(i=>({...i,id:uid(),carry:(i.carry||0)+1,time:i.kind==='event'?null:i.time,day:i.kind==='event'?null:i.day}));
-  const dl=week().items.filter(i=>i.kind==='daily').map(i=>({...i,id:uid(),checks:[0,0,0,0,0]}));
   const nk=shift(S.cur,1);
-  S.weeks[nk]={items:[...(S.weeks[nk]?S.weeks[nk].items:[]),...carry,...dl],route:[[],[],[],[],[]]};
+  S.weeks[nk]={items:[...(S.weeks[nk]?S.weeks[nk].items:[]),...carry],route:[[],[],[],[],[]]};
   S.cur=nk;tap();render();seg(0);scrollTo({top:0,behavior:'smooth'});
   toast(carry.length+'개를 다음 주로 넘겼습니다',null)};
 $('#exp').onclick=()=>{const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
@@ -1038,6 +1062,7 @@ $('#shareLink').onclick=async()=>{
       document.querySelector('.wrap').innerHTML='<div class="grp"><div class="list"><div class="blank"><b>열 수 없습니다</b>'+esc(e.message)+'</div></div></div>';
       return}
     if(!S||!S.cap)S=blank();
+  Object.values(S.weeks||{}).forEach(w=>(w.items||[]).forEach(i=>{if(i.kind==='daily')i.kind='todo'}));
     render();
     setInterval(async()=>{try{const d=await loadShared();if(d&&d.updated!==S.updated){S=d;render()}}catch(e){}},60000);
     return}
