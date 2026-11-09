@@ -433,6 +433,7 @@ function week(){if(!S.weeks[S.cur])S.weeks[S.cur]={items:[],route:[[],[],[],[],[
   if(!w.route)w.route=[[],[],[],[],[]];
   if(!w.closed)w.closed={};
   if(!w.lastClose)w.lastClose={};
+  if(!w.plog)w.plog=[];
   return w}
 const find=id=>week().items.find(i=>i.id===id);
 const uid=()=>Math.random().toString(36).slice(2,9);
@@ -464,6 +465,7 @@ async function load(){
     if(!w.closed)w.closed={};
     (w.items||[]).forEach(i=>{if(i.kind==='daily')i.kind='todo';
       if(i.day0===undefined)i.day0=i.day;
+      if(i.dayEnd0===undefined)i.dayEnd0=i.dayEnd===undefined?null:i.dayEnd;
       if(i.key0===undefined)i.key0=!!i.key})});
   canStore=mode!=='none';
   if(!canStore)$('#nostore').classList.remove('hide');
@@ -559,6 +561,11 @@ function chkHTML(i,small){
   return '<button class="chk '+cls+'" data-fin="'+i.id+'"'+st+' aria-label="진행 상태">'+
     (i.done?'✓':(p>0?ringSVG(p):''))+'</button>'}
 const progTxt=i=>(!i.done&&i.prog>0)?'<span class="prog">'+i.prog+'%</span><span class="sepdot">·</span>':'';
+const spanOf0=i=>(i.dayEnd0!=null&&i.day0!=null&&i.dayEnd0>i.day0)?[i.day0,i.dayEnd0]:null;
+const spanTxt0=i=>{const sp=spanOf0(i);return sp?DAYS[sp[0]]+'→'+DAYS[sp[1]]:''};
+const planMeta=i=>[i.cat||null,KINDS[i.kind],
+  spanOf0(i)?spanTxt0(i)+'요일':(i.day0!=null?DAYS[i.day0]+'요일':'요일 안 정함'),
+  i.time?hm(i.time):null,i.key0?'핵심':null].filter(Boolean).join(' · ');
 const metaOf=i=>[i.cat||null,KINDS[i.kind],
   spanOf(i)?spanTxt(i)+'요일':(i.day!=null?DAYS[i.day]+'요일':(i.kind!=='daily'?'요일 안 정함':null)),
   i.time?hm(i.time):null].filter(Boolean).join(' · ');
@@ -575,12 +582,11 @@ function unassigned(){
 }
 function lanes(){
   $('#lanes').innerHTML=PLACES.map(p=>{
-    const L=week().items.filter(i=>i.place===p);
+    const L=week().items.filter(i=>i.place===p&&i.kind!=='adhoc');
     return '<div class="grp"><h2>'+(p==='공통'?'3지점 공통':p)+'</h2><div class="list">'+
-      (L.length?L.map(i=>'<div class="row '+(i.done?'done':'')+'">'+
-        (i.kind!=='daily'?chkHTML(i):'')+
+      (L.length?L.map(i=>'<div class="row">'+
         '<button class="t tapme" data-edit="'+i.id+'" style="text-align:left"><span>'+esc(i.title)+'</span>'+
-        '<small>'+metaOf(i)+(i.carry?' · '+i.carry+'주 밀림':'')+'</small></button>'+
+        '<small>'+planMeta(i)+'</small></button>'+
         '<span class="chev">›</span></div>').join(''):'<div class="blank">아직 없습니다.</div>')+'</div></div>'}).join('');
 }
 function catStats(){
@@ -649,8 +655,7 @@ function shareText(branch){
 
   const want=branch&&branch!=='전체'?['공통',branch]:PLACES;
   const inScope=i=>want.includes(i.place);
-  const line=i=>'-'+(spanOf(i)?'('+spanTxt(i)+') ':'')+(i.time?hm(i.time)+' ':'')+i.title+
-    (!i.done&&i.prog>0?' (진행 '+i.prog+'%)':'');
+  const line=i=>'-'+(spanOf0(i)?'('+spanTxt0(i)+') ':'')+(i.time?hm(i.time)+' ':'')+i.title;
   const block=(L)=>{let o='';
     want.forEach(p=>{
       const G=L.filter(i=>i.place===p);
@@ -665,13 +670,13 @@ function shareText(branch){
 
   let ks='';
   want.forEach(p=>{
-    const K=W.items.filter(i=>i.key&&plan(i)&&i.place===p);
+    const K=W.items.filter(i=>i.key0&&plan(i)&&i.place===p);
     if(K.length)ks+='-'+p+': '+K.map(i=>i.title).join(', ')+'\n'});
   if(ks)s+='\n[핵심 업무]\n'+ks;
 
   let body='';
   DAYS.forEach((d,x)=>{
-    const L=W.items.filter(i=>plan(i)&&i.day===x);
+    const L=W.items.filter(i=>plan(i)&&(spanOf0(i)?spanOf0(i)[0]===x:i.day0===x));
     if(!L.length)return;
     const dt=dOf(x),t=routeTxt(W.route[x]);
     body+='\n'+(dt.getMonth()+1)+'/'+dt.getDate()+'('+d+')'+(t?' : '+t:'')+'\n'+block(L);
@@ -679,7 +684,7 @@ function shareText(branch){
   if(body)s+='\n[일자별 업무]'+body;
 
 
-  const un=W.items.filter(i=>plan(i)&&i.day==null);
+  const un=W.items.filter(i=>plan(i)&&i.day0==null);
   if(un.length)s+='\n[요일 미정]\n'+block(un);
 
   return s;
@@ -724,6 +729,7 @@ $('#addBtn').onclick=()=>{
   const st=(k!=='daily'&&dv!=='')?+dv:null;
   week().items.push({id:uid(),title:t,place:$('#nPlace').value,cat:$('#nCat').value,kind:k,key:keyOn,key0:keyOn,day0:st,
     day:st,dayEnd:(k==='todo'&&st!=null&&evx!==''&&+evx>st)?+evx:null,
+    dayEnd0:(k==='todo'&&st!=null&&evx!==''&&+evx>st)?+evx:null,
     time:k==='event'?$('#nTime').value:null,
     done:false,prog:0,feel:null,busy:null,carry:0,checks:[0,0,0,0,0]});
   $('#nTitle').value='';$('#nEnd').value='';keyOn=false;
@@ -752,7 +758,7 @@ function qDefault(){const t=isThisWeek()?todayIdx():-1;$('#qDay').value=String(t
 $('#qAdd').onclick=()=>{
   const t=$('#qTitle').value.trim();if(!t){$('#qTitle').focus();return}
   week().items.push({id:uid(),title:t,place:$('#qPlace').value,cat:$('#qCat').value,kind:'adhoc',key0:false,share:false,
-    day:+$('#qDay').value,time:null,done:true,feel:null,busy:null,carry:0,checks:[0,0,0,0,0]});
+    day:+$('#qDay').value,day0:+$('#qDay').value,dayEnd:null,dayEnd0:null,time:null,done:true,feel:null,busy:null,carry:0,checks:[0,0,0,0,0]});
   $('#qTitle').value='';$('#qTitle').focus();tap();render();toast('“'+t+'” 기록했습니다',null)};
 $('#qTitle').addEventListener('keydown',e=>{if(e.key==='Enter'&&!isIME(e))$('#qAdd').click()});
 
@@ -853,34 +859,10 @@ function reportSheet(x){
       tap();close();setTimeout(()=>{render();toast('복사했습니다',null)},60)}});
 }
 
-function snapPlan(){
-  const W=week(),m={};
-  W.items.forEach(i=>{m[i.id]={day:i.day,dayEnd:i.dayEnd,carry:i.carry||0,done:!!i.done,
-    prog:+i.prog||0,key:!!i.key,day0:i.day,key0:!!i.key}});
-  W.base={at:new Date().toISOString(),items:m};save();
-}
-function baseLabel(){
-  const b=week().base;if(!b)return '';
-  const d=new Date(b.at);return (d.getMonth()+1)+'/'+d.getDate()+' 저장';
-}
-function restoreDay(x){
-  const W=week(),b=W.base;if(!b)return 0;
-  let n=0;
-  W.items.forEach(i=>{
-    const o=b.items[i.id];if(!o)return;
-    const wasHere=o.day===x||(o.dayEnd!=null&&o.day!=null&&o.day<=x&&o.dayEnd>=x);
-    const isHere=i.day===x||(spanOf(i)&&spanOf(i)[0]<=x&&spanOf(i)[1]>=x);
-    if(!wasHere&&!isHere)return;
-    i.day=o.day;i.dayEnd=o.dayEnd;i.carry=o.carry;i.done=o.done;i.prog=o.prog;
-    i.key=o.key;i.day0=o.day0;i.key0=o.key0;n++});
-  return n;
-}
-
 function reopenSheet(x){
-  const W=week(),lc=(W.lastClose||{})[x]||{},hasBase=!!W.base;
+  const W=week(),lc=(W.lastClose||{})[x]||{};
   present('<h3>'+dayLabel(x)+' 마감됨</h3>'+
-    '<div class="sub">'+(hasBase?'취소하면 이 날이 처음 세운 계획('+baseLabel()+') 상태로 돌아갑니다.'
-      :lc.undo?'취소하면 이 마감에서 바뀐 요일과 밀림이 원래대로 돌아갑니다.'
+    '<div class="sub">'+(lc.undo?'취소하면 이 마감에서 바뀐 요일과 밀림이 원래대로 돌아갑니다. 계획과 공유용 정리는 마감과 무관하게 그대로입니다.'
       :'되돌릴 기준이 없어 마감 표시만 해제됩니다.')+'</div>'+
     '<div class="sbtns"><button id="uR">리포트 보기</button><button class="p" id="uU">마감 취소</button></div>'+
     '<button class="danger" id="uX" style="background:var(--fill);color:var(--label)">닫기</button>',
@@ -888,13 +870,12 @@ function reopenSheet(x){
     $('#uX').onclick=()=>close();
     $('#uR').onclick=()=>{close();setTimeout(()=>reportSheet(x),300)};
     $('#uU').onclick=()=>{
-      let n=0,how='';
-      if(hasBase){n=restoreDay(x);how=n?'계획 상태로 되돌렸습니다':'되돌릴 항목이 없었습니다'}
-      else if(lc.undo){const m={};W.items.forEach(i=>m[i.id]=i);
+      let how='마감 표시를 해제했습니다';
+      if(lc.undo){const m={};W.items.forEach(i=>m[i.id]=i);
         lc.undo.forEach(u=>{const i=m[u.id];if(!i)return;
-          i.day=u.day;i.dayEnd=u.dayEnd;i.day0=u.day0;i.key0=u.key0;i.carry=u.carry});
+          i.day=u.day;i.dayEnd=u.dayEnd;i.carry=u.carry});
+        if(lc.plogRep&&W.plog)W.plog.forEach((e,k)=>{if(lc.plogRep[k]!==undefined)e.rep=lc.plogRep[k]});
         how='마감을 취소했습니다'}
-      else how='마감 표시를 해제했습니다';
       if(W.lastClose)delete W.lastClose[x];
       if(W.closed)W.closed[x]=false;
       save();tap();close();
@@ -948,20 +929,17 @@ function closeSheet(x){
   function commit(){
     const W=week();
     W.lastClose=W.lastClose||{};
-    const undo=W.items.map(i=>({id:i.id,day:i.day,dayEnd:i.dayEnd,day0:i.day0,key0:!!i.key0,carry:i.carry||0}));
+    const undo=W.items.map(i=>({id:i.id,day:i.day,dayEnd:i.dayEnd,carry:i.carry||0}));
+    const plogRep=(W.plog||[]).map(e=>!!e.rep);
     const rec=[];
     late.forEach(i=>{const pk=pick[i.id];
       rec.push({t:i.title,place:i.place,cat:i.cat||'',prog:i.prog||0,to:pk.to,why:(pk.why||'').trim()});
       if(spanOf(i)){i.dayEnd=pk.to;if(pk.to===null){i.day=null;i.dayEnd=null}else if(pk.to<i.day){i.day=pk.to;i.dayEnd=null}}
       else i.day=pk.to;
-      i.day0=i.day;i.carry=(i.carry||0)+1});
+      i.carry=(i.carry||0)+1});
     const chg=[];
-    W.items.forEach(i=>{
-      if(late.includes(i))return;
-      if(i.day!==i.day0){chg.push({t:i.title,place:i.place,
-        s:(i.day0!=null?DAYS[i.day0]+'요일':'미정')+' → '+(i.day!=null?DAYS[i.day]+'요일':'미정')});i.day0=i.day}
-      if(!!i.key!==!!i.key0){chg.push({t:i.title,place:i.place,s:i.key?'핵심 업무로 올림':'핵심 업무에서 내림'});i.key0=!!i.key}});
-    W.lastClose[x]={rec,chg,undo};
+    (W.plog||[]).forEach(e=>{if(!e.rep){e.rep=true;chg.push({t:e.t,place:e.place,s:e.s})}});
+    W.lastClose[x]={rec,chg,undo,plogRep};
     W.closed=W.closed||{};W.closed[x]=true;
     save();
   }
@@ -1106,11 +1084,20 @@ function editSheet(item){
     if($('#eClr'))$('#eClr').onclick=()=>{item.carry=0;tap();close();setTimeout(()=>{render();toast('밀림 기록을 지웠습니다',null)},60)};
     $('#eC').onclick=()=>close();
     $('#eS').onclick=()=>{const t=$('#eT').value.trim();if(!t){$('#eT').focus();return}
+      const W=week(),od=item.day0,oe=item.dayEnd0==null?null:item.dayEnd0,ok0=!!item.key0;
       item.title=t;item.place=place;item.cat=cat;item.kind=kind;item.key=kf;item.tier=undefined;
       item.day=kind==='daily'?null:day;
       item.dayEnd=(kind==='todo'&&day!=null&&dend!=null&&dend>day)?dend:null;
+      item.day0=item.day;item.dayEnd0=item.dayEnd;item.key0=kf;
       item.time=kind==='event'?$('#eTime').value:null;
       if(kind==='daily')item.checks=item.checks||[0,0,0,0,0];
+      if(kind!=='adhoc'){
+        const rg=(a,b)=>(b!=null&&a!=null&&b>a)?DAYS[a]+'→'+DAYS[b]:(a!=null?DAYS[a]+'요일':'미정');
+        W.plog=W.plog||[];
+        if(od!==item.day0||oe!==item.dayEnd0)
+          W.plog.push({t:t,place:place,s:'계획 '+rg(od,oe)+' → '+rg(item.day0,item.dayEnd0),rep:false});
+        if(ok0!==kf)W.plog.push({t:t,place:place,s:kf?'핵심 업무로 올림':'핵심 업무에서 내림',rep:false});
+      }
       tap();close();setTimeout(render,60)};
     let armed=false,at;
     $('#eD').onclick=ev=>{const btn=ev.currentTarget;
@@ -1123,20 +1110,14 @@ function editSheet(item){
 
 let shBranch='화정';
 $('#shareBtn').onclick=()=>present(
-  '<h3>공유용 정리</h3><div class="sub">공통 + 선택한 지점만 들어갑니다. 글을 직접 고친 뒤 복사해도 됩니다.</div>'+
+  '<h3>공유용 정리</h3><div class="sub">최초 계획 기준입니다. 주간캘린더에서 완료·이동해도 이 글은 바뀌지 않습니다. 직접 고친 뒤 복사해도 됩니다.</div>'+
   '<div class="field"><div class="opts">'+['화정','돌곶이','회기','전체'].map(b=>
     '<button data-b="'+b+'" class="'+(shBranch===b?'on':'')+'">'+b+'</button>').join('')+'</div></div>'+
   '<textarea class="share" id="shTxt" spellcheck="false"></textarea>'+
-  '<div style="display:flex;align-items:center;gap:10px;margin-top:10px">'+
-    '<span id="shBase" style="flex:1;font-size:12.5px;color:var(--label2)"></span>'+
-    '<button id="shReset" style="font-size:13px;font-weight:600;color:var(--blue)">지금으로 다시 잡기</button></div>'+
   '<div class="sbtns"><button id="shC">닫기</button><button class="p" id="shK">복사</button></div>',
   close=>{
-    if(!week().base)snapPlan();
     const draw=()=>$('#shTxt').value=shareText(shBranch);
     draw();
-    const bl=$('#shBase');if(bl)bl.textContent='계획 기준: '+baseLabel();
-    if($('#shReset'))$('#shReset').onclick=()=>{snapPlan();$('#shBase').textContent='계획 기준: '+baseLabel();tap();toast('지금 상태를 계획 기준으로 잡았습니다',null)};
     $('#host').querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{
       shBranch=b.dataset.b;
       $('#host').querySelectorAll('[data-b]').forEach(x=>x.classList.toggle('on',x.dataset.b===shBranch));
@@ -1342,6 +1323,7 @@ $('#shareLink').onclick=async()=>{
     if(!w.closed)w.closed={};
     (w.items||[]).forEach(i=>{if(i.kind==='daily')i.kind='todo';
       if(i.day0===undefined)i.day0=i.day;
+      if(i.dayEnd0===undefined)i.dayEnd0=i.dayEnd===undefined?null:i.dayEnd;
       if(i.key0===undefined)i.key0=!!i.key})});
     render();
     setInterval(async()=>{try{const d=await loadShared();if(d&&d.updated!==S.updated){S=d;render()}}catch(e){}},60000);
