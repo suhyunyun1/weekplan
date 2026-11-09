@@ -839,24 +839,24 @@ function reportSheet(x){
 }
 
 function reopenSheet(x){
-  present('<h3>'+dayLabel(x)+' 마감됨</h3><div class="sub">리포트를 다시 보거나, 마감을 취소할 수 있습니다.</div>'+
-    '<div class="sbtns"><button id="uX">닫기</button><button class="p" id="uR">리포트 보기</button></div>'+
-    '<button class="danger" id="uU">마감 취소</button>',
+  const W=week(),lc=(W.lastClose||{})[x]||{};
+  const n=(lc.undo||[]).length;
+  present('<h3>'+dayLabel(x)+' 마감됨</h3>'+
+    '<div class="sub">'+(lc.undo?'취소하면 이 마감에서 바뀐 요일과 밀림이 원래대로 돌아갑니다.'
+      :'되돌릴 기록이 없어 마감 표시만 해제됩니다. 옮긴 요일과 밀림은 항목에서 직접 고치세요.')+'</div>'+
+    '<div class="sbtns"><button id="uR">리포트 보기</button><button class="p" id="uU">마감 취소</button></div>'+
+    '<button class="danger" id="uX" style="background:var(--fill);color:var(--label)">닫기</button>',
   close=>{
     $('#uX').onclick=()=>close();
     $('#uR').onclick=()=>{close();setTimeout(()=>reportSheet(x),300)};
-    let armed=false,t=null;
-    $('#uU').onclick=ev=>{const b=ev.currentTarget;
-      if(!armed){armed=true;b.classList.add('armed');b.textContent='한 번 더 누르면 취소';
-        t=setTimeout(()=>{armed=false;b.classList.remove('armed');b.textContent='마감 취소'},3000);return}
-      clearTimeout(t);
-      const W=week(),lc=(W.lastClose||{})[x];
-      if(lc&&lc.undo){const m={};W.items.forEach(i=>m[i.id]=i);
+    $('#uU').onclick=()=>{
+      if(lc.undo){const m={};W.items.forEach(i=>m[i.id]=i);
         lc.undo.forEach(u=>{const i=m[u.id];if(!i)return;
           i.day=u.day;i.dayEnd=u.dayEnd;i.day0=u.day0;i.key0=u.key0;i.carry=u.carry})}
       if(W.lastClose)delete W.lastClose[x];
       if(W.closed)W.closed[x]=false;
-      tap();close();setTimeout(()=>{render();toast(lc&&lc.undo?'마감을 취소했습니다':'마감 표시만 해제했습니다',null)},60)}});
+      save();tap();close();
+      setTimeout(()=>{render();toast(lc.undo?'마감을 취소했습니다':'마감 표시를 해제했습니다',null)},60)}});
 }
 
 function closeSheet(x){
