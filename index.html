@@ -779,19 +779,27 @@ function present(html,mount){
   const H=()=>sh.getBoundingClientRect().height+20;
   let y=H();const set=v=>{y=v;sh.style.transform='translateY('+v+'px)';scrim.style.opacity=String(Math.max(0,1-v/H()))};
   set(H());requestAnimationFrame(()=>spring(H(),0,0,set,null,.4,.86));
-  const close=v=>spring(y,H(),v||0,set,()=>{if(sheetSeq===myId)$('#host').innerHTML=''},.35,1);
+  const onKey=e=>{if(e.key==='Escape')close()};
+  const close=v=>{removeEventListener('keydown',onKey);
+    return spring(y,H(),v||0,set,()=>{if(sheetSeq===myId)$('#host').innerHTML=''},.35,1)};
   scrim.onclick=()=>close();
-  let sy=0,y0=0,hist=[],drag=false;
-  sh.addEventListener('pointerdown',e=>{if(e.target.closest('input,button,select,textarea'))return;
-    sh.setPointerCapture(e.pointerId);drag=true;sy=e.clientY;y0=y;hist=[[e.clientY,performance.now()]]});
-  sh.addEventListener('pointermove',e=>{if(!drag)return;let d=e.clientY-sy;
+  const TH=10;
+  let sy=0,y0=0,hist=[],drag=false,moved=false;
+  sh.addEventListener('pointerdown',e=>{if(e.target.closest('input,button,select,textarea,a'))return;
+    sh.setPointerCapture(e.pointerId);drag=true;moved=false;sy=e.clientY;y0=y;hist=[[e.clientY,performance.now()]]});
+  sh.addEventListener('pointermove',e=>{if(!drag)return;
+    let d=e.clientY-sy;
+    if(!moved){if(Math.abs(d)<TH)return;moved=true;sy=e.clientY-(d>0?TH:-TH);d=e.clientY-sy}
     if(y0+d<0){const o=-(y0+d);d+=o-(o*H()*.55)/(H()+.55*o)}
     set(Math.max(-40,y0+d));hist.push([e.clientY,performance.now()]);if(hist.length>5)hist.shift()});
   const up=()=>{if(!drag)return;drag=false;
-    const a=hist[0],b=hist[hist.length-1],dt=(b[1]-a[1])/1000,v=dt>0?(b[0]-a[0])/dt:0;
-    (y+project(v)>H()*.4||v>620)?close(v):spring(y,0,v,set,null,.4,.86)};
+    if(!moved){if(y!==0)spring(y,0,0,set,null,.4,.86);return}
+    const now=performance.now(),rec=hist.filter(h=>now-h[1]<150);
+    const a=rec.length>1?rec[0]:hist[0],b=hist[hist.length-1];
+    const dt=(b[1]-a[1])/1000,v=dt>=.03?(b[0]-a[0])/dt:0;
+    (y>H()*.5||v>1000)?close(v):spring(y,0,v,set,null,.4,.86)};
   sh.addEventListener('pointerup',up);sh.addEventListener('pointercancel',up);
-  addEventListener('keydown',function k(e){if(e.key==='Escape'){close();removeEventListener('keydown',k)}});
+  addEventListener('keydown',onKey);
   mount(close);return close}
 
 const WHYS=['현장 이슈','일정 변경','우선순위 밀림'];
