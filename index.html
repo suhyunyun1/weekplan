@@ -771,13 +771,15 @@ $('#prev').onclick=()=>{S.cur=shift(S.cur,-1);render()};
 $('#next').onclick=()=>{S.cur=shift(S.cur,1);render()};
 addEventListener('scroll',()=>$('#nav').classList.toggle('scrolled',scrollY>26),{passive:true});
 
+let sheetSeq=0;
 function present(html,mount){
+  const myId=++sheetSeq;
   $('#host').innerHTML='<div class="scrim" id="scrim"></div><div class="sheetwrap"><div class="sheet" id="sh"><div class="grab"></div>'+html+'</div></div>';
   const sh=$('#sh'),scrim=$('#scrim');
   const H=()=>sh.getBoundingClientRect().height+20;
   let y=H();const set=v=>{y=v;sh.style.transform='translateY('+v+'px)';scrim.style.opacity=String(Math.max(0,1-v/H()))};
   set(H());requestAnimationFrame(()=>spring(H(),0,0,set,null,.4,.86));
-  const close=v=>spring(y,H(),v||0,set,()=>$('#host').innerHTML='',.35,1);
+  const close=v=>spring(y,H(),v||0,set,()=>{if(sheetSeq===myId)$('#host').innerHTML=''},.35,1);
   scrim.onclick=()=>close();
   let sy=0,y0=0,hist=[],drag=false;
   sh.addEventListener('pointerdown',e=>{if(e.target.closest('input,button,select,textarea'))return;
