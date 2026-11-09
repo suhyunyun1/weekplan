@@ -425,7 +425,7 @@ function label(){const a=dOf(0),b=dOf(4);
   return wkTitle()+' · '+(a.getMonth()+1)+'/'+a.getDate()+'–'+(b.getMonth()+1)+'/'+b.getDate()}
 const shift=(k,n)=>{const a=new Date(k+'T00:00:00');a.setDate(a.getDate()+7*n);return key(a)};
 const blank=()=>({cap:4,weeks:{},cur:key(mondayOf(new Date())),hist:[]});
-function week(){if(!S.weeks[S.cur])S.weeks[S.cur]={items:[],route:[[],[],[],[],[]],closed:{},lastClose:{}};
+function week(){if(!S.weeks[S.cur])S.weeks[S.cur]={items:[],route:[[],[],[],[],[]],closed:{},lastClose:{},base:null};
   const w=S.weeks[S.cur];
   if(!w.route)w.route=[[],[],[],[],[]];
   if(!w.closed)w.closed={};
@@ -838,25 +838,52 @@ function reportSheet(x){
       tap();close();setTimeout(()=>{render();toast('복사했습니다',null)},60)}});
 }
 
+function snapPlan(){
+  const W=week(),m={};
+  W.items.forEach(i=>{m[i.id]={day:i.day,dayEnd:i.dayEnd,carry:i.carry||0,done:!!i.done,
+    prog:+i.prog||0,key:!!i.key,day0:i.day,key0:!!i.key}});
+  W.base={at:new Date().toISOString(),items:m};save();
+}
+function baseLabel(){
+  const b=week().base;if(!b)return '';
+  const d=new Date(b.at);return (d.getMonth()+1)+'/'+d.getDate()+' 저장';
+}
+function restoreDay(x){
+  const W=week(),b=W.base;if(!b)return 0;
+  let n=0;
+  W.items.forEach(i=>{
+    const o=b.items[i.id];if(!o)return;
+    const wasHere=o.day===x||(o.dayEnd!=null&&o.day!=null&&o.day<=x&&o.dayEnd>=x);
+    const isHere=i.day===x||(spanOf(i)&&spanOf(i)[0]<=x&&spanOf(i)[1]>=x);
+    if(!wasHere&&!isHere)return;
+    i.day=o.day;i.dayEnd=o.dayEnd;i.carry=o.carry;i.done=o.done;i.prog=o.prog;
+    i.key=o.key;i.day0=o.day0;i.key0=o.key0;n++});
+  return n;
+}
+
 function reopenSheet(x){
-  const W=week(),lc=(W.lastClose||{})[x]||{};
-  const n=(lc.undo||[]).length;
+  const W=week(),lc=(W.lastClose||{})[x]||{},hasBase=!!W.base;
   present('<h3>'+dayLabel(x)+' 마감됨</h3>'+
-    '<div class="sub">'+(lc.undo?'취소하면 이 마감에서 바뀐 요일과 밀림이 원래대로 돌아갑니다.'
-      :'되돌릴 기록이 없어 마감 표시만 해제됩니다. 옮긴 요일과 밀림은 항목에서 직접 고치세요.')+'</div>'+
+    '<div class="sub">'+(hasBase?'취소하면 이 날이 처음 세운 계획('+baseLabel()+') 상태로 돌아갑니다.'
+      :lc.undo?'취소하면 이 마감에서 바뀐 요일과 밀림이 원래대로 돌아갑니다.'
+      :'되돌릴 기준이 없어 마감 표시만 해제됩니다.')+'</div>'+
     '<div class="sbtns"><button id="uR">리포트 보기</button><button class="p" id="uU">마감 취소</button></div>'+
     '<button class="danger" id="uX" style="background:var(--fill);color:var(--label)">닫기</button>',
   close=>{
     $('#uX').onclick=()=>close();
     $('#uR').onclick=()=>{close();setTimeout(()=>reportSheet(x),300)};
     $('#uU').onclick=()=>{
-      if(lc.undo){const m={};W.items.forEach(i=>m[i.id]=i);
+      let n=0,how='';
+      if(hasBase){n=restoreDay(x);how=n?'계획 상태로 되돌렸습니다':'되돌릴 항목이 없었습니다'}
+      else if(lc.undo){const m={};W.items.forEach(i=>m[i.id]=i);
         lc.undo.forEach(u=>{const i=m[u.id];if(!i)return;
-          i.day=u.day;i.dayEnd=u.dayEnd;i.day0=u.day0;i.key0=u.key0;i.carry=u.carry})}
+          i.day=u.day;i.dayEnd=u.dayEnd;i.day0=u.day0;i.key0=u.key0;i.carry=u.carry});
+        how='마감을 취소했습니다'}
+      else how='마감 표시를 해제했습니다';
       if(W.lastClose)delete W.lastClose[x];
       if(W.closed)W.closed[x]=false;
       save();tap();close();
-      setTimeout(()=>{render();toast(lc.undo?'마감을 취소했습니다':'마감 표시를 해제했습니다',null)},60)}});
+      setTimeout(()=>{render();toast(how,null)},60)}});
 }
 
 function closeSheet(x){
@@ -1085,10 +1112,16 @@ $('#shareBtn').onclick=()=>present(
   '<div class="field"><div class="opts">'+['화정','돌곶이','회기','전체'].map(b=>
     '<button data-b="'+b+'" class="'+(shBranch===b?'on':'')+'">'+b+'</button>').join('')+'</div></div>'+
   '<textarea class="share" id="shTxt" spellcheck="false"></textarea>'+
+  '<div style="display:flex;align-items:center;gap:10px;margin-top:10px">'+
+    '<span id="shBase" style="flex:1;font-size:12.5px;color:var(--label2)"></span>'+
+    '<button id="shReset" style="font-size:13px;font-weight:600;color:var(--blue)">지금으로 다시 잡기</button></div>'+
   '<div class="sbtns"><button id="shC">닫기</button><button class="p" id="shK">복사</button></div>',
   close=>{
+    if(!week().base)snapPlan();
     const draw=()=>$('#shTxt').value=shareText(shBranch);
     draw();
+    const bl=$('#shBase');if(bl)bl.textContent='계획 기준: '+baseLabel();
+    if($('#shReset'))$('#shReset').onclick=()=>{snapPlan();$('#shBase').textContent='계획 기준: '+baseLabel();tap();toast('지금 상태를 계획 기준으로 잡았습니다',null)};
     $('#host').querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{
       shBranch=b.dataset.b;
       $('#host').querySelectorAll('[data-b]').forEach(x=>x.classList.toggle('on',x.dataset.b===shBranch));
@@ -1119,7 +1152,7 @@ $('#rollBtn').onclick=()=>{
     const n={...i,id:uid(),carry:(i.carry||0)+1,time:i.kind==='event'?null:i.time,day:i.kind==='event'?null:i.day};
     n.day0=n.day;n.key0=!!n.key;return n});
   const nk=shift(S.cur,1);
-  S.weeks[nk]={items:[...(S.weeks[nk]?S.weeks[nk].items:[]),...carry],route:[[],[],[],[],[]],closed:{},lastClose:{}};
+  S.weeks[nk]={items:[...(S.weeks[nk]?S.weeks[nk].items:[]),...carry],route:[[],[],[],[],[]],closed:{},lastClose:{},base:null};
   S.cur=nk;tap();render();seg(0);scrollTo({top:0,behavior:'smooth'});
   toast(carry.length+'개를 다음 주로 넘겼습니다',null)};
 $('#exp').onclick=()=>{const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
