@@ -689,7 +689,8 @@ document.addEventListener('click',e=>{
   if(RO)return;
   if(b.dataset.cap){S.cap=Math.max(1,S.cap+ +b.dataset.cap);tap();render();return}
   if(b.dataset.route!==undefined){routeSheet(+b.dataset.route);return}
-  if(b.dataset.close!==undefined){closeSheet(+b.dataset.close);return}
+  if(b.dataset.close!==undefined){const dx=+b.dataset.close;
+    ((week().closed||{})[dx]?reopenSheet:closeSheet)(dx);return}
   if(b.dataset.cat!==undefined&&b.classList.contains('catrow')){catSheet(b.dataset.cat);return}
   if(b.dataset.ck!==undefined&&b.dataset.d!==undefined){const i=find(b.dataset.ck);i.checks[+b.dataset.d]^=1;tap();render();return}
   if(b.dataset.fin){const i=find(b.dataset.fin);
@@ -817,54 +818,14 @@ function catSheet(cat){
   });
 }
 
-function closeSheet(x){
-  const W=week();
-  const late=W.items.filter(i=>(i.kind==='todo'||i.kind==='event')&&!i.done&&dueOn(i,x));
-  const pick={};late.forEach(i=>pick[i.id]={to:(x<4?x+1:null),why:''});
-  let branch='전체',close=null;
-
-  const stepA=()=>'<h3>'+dayLabel(x)+' 마감</h3>'+
-    (late.length?'<div class="sub">못 끝낸 일 '+late.length+'개 — 언제로 옮길까요?</div>'+
-      late.map(i=>'<div class="lateitem"><div class="lt">'+esc(i.title)+
-        (!i.done&&i.prog>0?' <span class="prog">'+i.prog+'%</span>':'')+'</div>'+
-        '<div class="opts">'+DAYS.map((d,k)=>'<button data-mv="'+i.id+'" data-to="'+k+'" class="'+(pick[i.id].to===k?'on':'')+(k===x?'" style="opacity:.45':'')+'">'+d+'</button>').join('')+
-          '<button data-mv="'+i.id+'" data-to="" class="'+(pick[i.id].to===null?'on':'')+'">이번주 아님</button></div>'+
-        '<div class="lab">사유</div><div class="opts">'+
-          WHYS.map(w=>'<button data-why="'+i.id+'" data-w="'+w+'" class="'+(pick[i.id].why===w?'on':'')+'">'+w+'</button>').join('')+
-          '<button data-whyx="'+i.id+'" class="'+(pick[i.id].why&&!WHYS.includes(pick[i.id].why)?'on':'')+'">직접</button></div>'+
-        '<input class="whyin '+(pick[i.id].why&&!WHYS.includes(pick[i.id].why)?'':'hide')+'" data-wi="'+i.id+'" placeholder="사유 입력" value="'+esc(WHYS.includes(pick[i.id].why)?'':pick[i.id].why)+'"></div>').join('')
-      :'<div class="sub">못 끝낸 일이 없습니다.</div>')+
-    '<div class="sbtns"><button id="cC">취소</button><button class="p" id="cGo">리포트 만들기</button></div>';
-
-  const stepB=()=>'<h3>'+dayLabel(x)+' 리포트</h3><div class="sub">고쳐서 복사해도 됩니다.</div>'+
+function reportSheet(x){
+  let branch='전체';
+  present('<h3>'+dayLabel(x)+' 리포트</h3><div class="sub">고쳐서 복사해도 됩니다.</div>'+
     '<div class="field"><div class="opts">'+['화정','돌곶이','회기','전체'].map(b=>
       '<button data-rb="'+b+'" class="'+(branch===b?'on':'')+'">'+b+'</button>').join('')+'</div></div>'+
     '<textarea class="share" id="rpTxt" spellcheck="false"></textarea>'+
-    '<div class="sbtns"><button id="rC">닫기</button><button class="p" id="rK">복사</button></div>';
-
-  function swap(html,bind){const sh=$('#sh');if(!sh)return;sh.innerHTML='<div class="grab"></div>'+html();bind()}
-
-  const bindA=()=>{
-    $('#cC').onclick=()=>close();
-    $('#host').querySelectorAll('[data-mv]').forEach(b=>b.onclick=()=>{
-      const id=b.dataset.mv;pick[id].to=b.dataset.to===''?null:+b.dataset.to;
-      $('#host').querySelectorAll('[data-mv="'+id+'"]').forEach(y=>y.classList.toggle('on',
-        (y.dataset.to===''?null:+y.dataset.to)===pick[id].to));tap()});
-    $('#host').querySelectorAll('[data-why]').forEach(b=>b.onclick=()=>{
-      const id=b.dataset.why;pick[id].why=b.dataset.w;
-      $('#host').querySelectorAll('[data-why="'+id+'"]').forEach(y=>y.classList.toggle('on',y.dataset.w===pick[id].why));
-      const xb=$('#host').querySelector('[data-whyx="'+id+'"]');if(xb)xb.classList.remove('on');
-      const wi=$('#host').querySelector('[data-wi="'+id+'"]');if(wi)wi.classList.add('hide');tap()});
-    $('#host').querySelectorAll('[data-whyx]').forEach(b=>b.onclick=()=>{
-      const id=b.dataset.whyx;
-      $('#host').querySelectorAll('[data-why="'+id+'"]').forEach(y=>y.classList.remove('on'));
-      b.classList.add('on');
-      const wi=$('#host').querySelector('[data-wi="'+id+'"]');wi.classList.remove('hide');wi.focus();
-      pick[id].why=wi.value;tap()});
-    $('#host').querySelectorAll('[data-wi]').forEach(el=>el.oninput=()=>{pick[el.dataset.wi]=Object.assign(pick[el.dataset.wi],{why:el.value})});
-    $('#cGo').onclick=()=>{commit();swap(stepB,bindB)}};
-
-  const bindB=()=>{
+    '<div class="sbtns"><button id="rC">닫기</button><button class="p" id="rK">복사</button></div>',
+  close=>{
     const draw=()=>$('#rpTxt').value=reportText(x,branch);
     draw();
     $('#host').querySelectorAll('[data-rb]').forEach(b=>b.onclick=()=>{
@@ -874,11 +835,78 @@ function closeSheet(x){
     $('#rC').onclick=()=>{close();setTimeout(render,60)};
     $('#rK').onclick=async()=>{const t=$('#rpTxt');
       try{await navigator.clipboard.writeText(t.value)}catch(e){t.select();document.execCommand('copy')}
-      tap();close();setTimeout(()=>{render();toast('복사했습니다',null)},60)}};
+      tap();close();setTimeout(()=>{render();toast('복사했습니다',null)},60)}});
+}
+
+function reopenSheet(x){
+  present('<h3>'+dayLabel(x)+' 마감됨</h3><div class="sub">리포트를 다시 보거나, 마감을 취소할 수 있습니다.</div>'+
+    '<div class="sbtns"><button id="uX">닫기</button><button class="p" id="uR">리포트 보기</button></div>'+
+    '<button class="danger" id="uU">마감 취소</button>',
+  close=>{
+    $('#uX').onclick=()=>close();
+    $('#uR').onclick=()=>{close();setTimeout(()=>reportSheet(x),300)};
+    let armed=false,t=null;
+    $('#uU').onclick=ev=>{const b=ev.currentTarget;
+      if(!armed){armed=true;b.classList.add('armed');b.textContent='한 번 더 누르면 취소';
+        t=setTimeout(()=>{armed=false;b.classList.remove('armed');b.textContent='마감 취소'},3000);return}
+      clearTimeout(t);
+      const W=week(),lc=(W.lastClose||{})[x];
+      if(lc&&lc.undo){const m={};W.items.forEach(i=>m[i.id]=i);
+        lc.undo.forEach(u=>{const i=m[u.id];if(!i)return;
+          i.day=u.day;i.dayEnd=u.dayEnd;i.day0=u.day0;i.key0=u.key0;i.carry=u.carry})}
+      if(W.lastClose)delete W.lastClose[x];
+      if(W.closed)W.closed[x]=false;
+      tap();close();setTimeout(()=>{render();toast(lc&&lc.undo?'마감을 취소했습니다':'마감 표시만 해제했습니다',null)},60)}});
+}
+
+function closeSheet(x){
+  const W=week();
+  const late=W.items.filter(i=>(i.kind==='todo'||i.kind==='event')&&!i.done&&dueOn(i,x));
+  const pick={};late.forEach(i=>pick[i.id]={to:(x<4?x+1:null),why:''});
+  let close=null;
+
+  const stepA=()=>'<h3>'+dayLabel(x)+' 마감</h3>'+
+    (late.length?'<div class="sub">못 끝낸 일 '+late.length+'개 — 언제로 옮길까요?</div>'+
+      late.map(i=>'<div class="lateitem"><div class="lt">'+esc(i.title)+
+        (!i.done&&i.prog>0?' <span class="prog">'+i.prog+'%</span>':'')+'</div>'+
+        '<div class="opts">'+DAYS.map((d,k)=>'<button data-mv="'+i.id+'" data-to="'+k+'" class="'+(pick[i.id].to===k?'on':'')+'">'+d+'</button>').join('')+
+          '<button data-mv="'+i.id+'" data-to="" class="'+(pick[i.id].to===null?'on':'')+'">이번주 아님</button></div>'+
+        '<div class="lab">사유</div><div class="opts">'+
+          WHYS.map(w=>'<button data-why="'+i.id+'" data-w="'+w+'" class="'+(pick[i.id].why===w?'on':'')+'">'+w+'</button>').join('')+
+          '<button data-whyx="'+i.id+'" class="'+(pick[i.id].why&&!WHYS.includes(pick[i.id].why)?'on':'')+'">직접</button></div>'+
+        '<input class="whyin '+(pick[i.id].why&&!WHYS.includes(pick[i.id].why)?'':'hide')+'" data-wi="'+i.id+'" placeholder="사유 입력" value="'+esc(WHYS.includes(pick[i.id].why)?'':pick[i.id].why)+'"></div>').join('')
+      :'<div class="sub">못 끝낸 일이 없습니다.</div>')+
+    '<div class="sbtns"><button id="cC">취소</button><button class="p" id="cGo">리포트 만들기</button></div>';
+
+
+  const bindA=()=>{
+    $('#cC').onclick=()=>close();
+    $('#host').querySelectorAll('[data-mv]').forEach(b=>b.onclick=()=>{
+      const id=b.dataset.mv;pick[id].to=b.dataset.to===''?null:+b.dataset.to;
+      $('#host').querySelectorAll('[data-mv="'+id+'"]').forEach(y=>y.classList.toggle('on',
+        (y.dataset.to===''?null:+y.dataset.to)===pick[id].to));tap()});
+    $('#host').querySelectorAll('[data-why]').forEach(b=>b.onclick=()=>{
+      const id=b.dataset.why;
+      pick[id].why=(pick[id].why===b.dataset.w)?'':b.dataset.w;
+      $('#host').querySelectorAll('[data-why="'+id+'"]').forEach(y=>y.classList.toggle('on',!!pick[id].why&&y.dataset.w===pick[id].why));
+      const xb=$('#host').querySelector('[data-whyx="'+id+'"]');if(xb)xb.classList.remove('on');
+      const wi=$('#host').querySelector('[data-wi="'+id+'"]');if(wi)wi.classList.add('hide');tap()});
+    $('#host').querySelectorAll('[data-whyx]').forEach(b=>b.onclick=()=>{
+      const id=b.dataset.whyx,wi=$('#host').querySelector('[data-wi="'+id+'"]');
+      const off=b.classList.contains('on');
+      $('#host').querySelectorAll('[data-why="'+id+'"]').forEach(y=>y.classList.remove('on'));
+      b.classList.toggle('on',!off);
+      if(off){wi.classList.add('hide');pick[id].why=''}
+      else{wi.classList.remove('hide');wi.focus();pick[id].why=wi.value}
+      tap()});
+    $('#host').querySelectorAll('[data-wi]').forEach(el=>el.oninput=()=>{pick[el.dataset.wi]=Object.assign(pick[el.dataset.wi],{why:el.value})});
+    $('#cGo').onclick=()=>{commit();close();setTimeout(()=>reportSheet(x),300)}};
+
 
   function commit(){
     const W=week();
     W.lastClose=W.lastClose||{};
+    const undo=W.items.map(i=>({id:i.id,day:i.day,dayEnd:i.dayEnd,day0:i.day0,key0:!!i.key0,carry:i.carry||0}));
     const rec=[];
     late.forEach(i=>{const pk=pick[i.id];
       rec.push({t:i.title,place:i.place,cat:i.cat||'',prog:i.prog||0,to:pk.to,why:(pk.why||'').trim()});
@@ -891,7 +919,7 @@ function closeSheet(x){
       if(i.day!==i.day0){chg.push({t:i.title,place:i.place,
         s:(i.day0!=null?DAYS[i.day0]+'요일':'미정')+' → '+(i.day!=null?DAYS[i.day]+'요일':'미정')});i.day0=i.day}
       if(!!i.key!==!!i.key0){chg.push({t:i.title,place:i.place,s:i.key?'핵심 업무로 올림':'핵심 업무에서 내림'});i.key0=!!i.key}});
-    W.lastClose[x]={rec,chg};
+    W.lastClose[x]={rec,chg,undo};
     W.closed=W.closed||{};W.closed[x]=true;
     save();
   }
@@ -1011,6 +1039,7 @@ function editSheet(item){
       Object.keys(KINDS).map(k=>o('kind',k,KINDS[k],item.kind===k)).join('')+'</div>'+
       '</div>'+
     '<button class="swrow key '+(item.key?'on':'')+'" id="eKey"><span class="sw"><i></i></span><span>핵심 업무</span></button>'+
+    (item.carry?'<button class="swrow" id="eClr" style="justify-content:space-between"><span style="color:var(--red)">'+item.carry+'주 밀림</span><span style="color:var(--blue);font-size:13px;font-weight:600">지우기</span></button>':'')+
     '<div class="field '+(item.kind==='daily'?'hide':'')+'" id="fDay"><label>요일</label><div class="opts">'+
       o('day','','미정',item.day==null)+DAYS.map((d,x)=>o('day',x,d,item.day===x)).join('')+'</div></div>'+
     '<div class="field '+(item.kind==='todo'?'':'hide')+'" id="fEnd"><label>끝 요일 — 여러 날에 걸치는 일</label><div class="opts">'+
@@ -1032,6 +1061,7 @@ function editSheet(item){
       if(g==='day')day=v===''?null:+v;
       tap()});
     if($('#eKey'))$('#eKey').onclick=()=>{kf=!kf;$('#eKey').classList.toggle('on',kf);tap()};
+    if($('#eClr'))$('#eClr').onclick=()=>{item.carry=0;tap();close();setTimeout(()=>{render();toast('밀림 기록을 지웠습니다',null)},60)};
     $('#eC').onclick=()=>close();
     $('#eS').onclick=()=>{const t=$('#eT').value.trim();if(!t){$('#eT').focus();return}
       item.title=t;item.place=place;item.cat=cat;item.kind=kind;item.key=kf;item.tier=undefined;
