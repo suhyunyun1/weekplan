@@ -287,6 +287,9 @@ button{background:none;border:0;cursor:pointer;touch-action:manipulation}
 .robar{background:var(--fill);color:var(--label2);font-size:13px;padding:9px 16px;text-align:center}
 body.ro .chk,body.ro .del,body.ro .danger,body.ro .addwrap,body.ro .route .setroute,
 body.ro #syncBtn,body.ro #exp,body.ro #imp,body.ro #shareBtn,body.ro #shareLink,
+.nextchip{flex:0 0 auto;font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;
+  background:rgba(120,120,128,.14);color:var(--label2)}
+.row.moved .t span{color:var(--label2)}
 body.ro .dayck,body.ro .chev,body.ro .quick,body.ro .tip button,body.ro #rollBtn,body.ro #capRow{display:none!important}
 body.ro .route{pointer-events:none}
 body.ro .tsk .tt,body.ro .row .t{pointer-events:none}
@@ -393,7 +396,7 @@ const CATS=['상담·세일즈','리드관리','회원관리','마케팅','전�
 const CATC={'상담·세일즈':'#FF3B30','리드관리':'#FF9500','회원관리':'#34C759','마케팅':'#AF52DE','전략운영':'#007AFF','내부직원관리':'#30B0C7','시설관리':'#A2845E'};
 const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')'};
 const catChip=c=>(c&&CATC[c])?'<span class="cchip" style="color:'+CATC[c]+';background:'+hexA(CATC[c],.14)+'">'+c+'</span>':'';
-const SPOTS=['화정','돌곶이','회기','미정','외부회의','출장','휴무'];
+const SPOTS=['화정','돌곶이','회기','미정','외부회의','출장','오전반차','오후반차','월차'];
 function routeTxt(r){
   const out=[];
   (r||[]).forEach(q=>{const p=q==='O'?'미정':q;
@@ -573,11 +576,11 @@ const metaOf=i=>[i.cat||null,KINDS[i.kind],
 function unassigned(){
   const L=week().items.filter(i=>i.kind!=='daily'&&i.day==null);
   $('#unassigned').innerHTML=L.length?L.map(i=>
-    '<div class="row '+(i.done?'done':'')+'">'+
-    chkHTML(i)+
+    '<div class="row '+(i.done?'done':'')+(i.moved?' moved':'')+'">'+
+    (i.moved?'<span class="nextchip">차주</span>':chkHTML(i))+
     '<span class="pl '+i.place+'">'+i.place+'</span>'+
     '<button class="t tapme" data-edit="'+i.id+'" style="text-align:left"><span>'+esc(i.title)+'</span>'+
-    '<small>'+(!i.done&&i.prog>0?i.prog+'% · ':'')+metaOf(i)+'</small></button><span class="chev">›</span></div>').join('')
+    '<small>'+(i.moved?'차주로 넘김 · ':'')+(!i.done&&i.prog>0?i.prog+'% · ':'')+metaOf(i)+'</small></button><span class="chev">›</span></div>').join('')
     :'<div class="blank">요일을 안 정한 일이 없습니다.</div>';
 }
 function lanes(){
@@ -883,7 +886,9 @@ function reopenSheet(x){
       let how='마감 표시를 해제했습니다';
       if(lc.undo){const m={};W.items.forEach(i=>m[i.id]=i);
         lc.undo.forEach(u=>{const i=m[u.id];if(!i)return;
-          i.day=u.day;i.dayEnd=u.dayEnd;i.carry=u.carry});
+          i.day=u.day;i.dayEnd=u.dayEnd;i.carry=u.carry;i.moved=!!u.moved});
+        if(lc.nk&&lc.spawned&&lc.spawned.length&&S.weeks[lc.nk])
+          S.weeks[lc.nk].items=S.weeks[lc.nk].items.filter(i=>!lc.spawned.includes(i.id));
         if(lc.plogRep&&W.plog)W.plog.forEach((e,k)=>{if(lc.plogRep[k]!==undefined)e.rep=lc.plogRep[k]});
         how='마감을 취소했습니다'}
       if(W.lastClose)delete W.lastClose[x];
@@ -903,7 +908,7 @@ function closeSheet(x){
       late.map(i=>'<div class="lateitem"><div class="lt">'+esc(i.title)+
         (!i.done&&i.prog>0?' <span class="prog">'+i.prog+'%</span>':'')+'</div>'+
         '<div class="opts">'+DAYS.map((d,k)=>'<button data-mv="'+i.id+'" data-to="'+k+'" class="'+(pick[i.id].to===k?'on':'')+'">'+d+'</button>').join('')+
-          '<button data-mv="'+i.id+'" data-to="" class="'+(pick[i.id].to===null?'on':'')+'">이번주 아님</button></div>'+
+          '<button data-mv="'+i.id+'" data-to="" class="'+(pick[i.id].to===null?'on':'')+'">차주로 일정변경</button></div>'+
         '<div class="lab">사유</div><div class="opts">'+
           WHYS.map(w=>'<button data-why="'+i.id+'" data-w="'+w+'" class="'+(pick[i.id].why===w?'on':'')+'">'+w+'</button>').join('')+
           '<button data-whyx="'+i.id+'" class="'+(pick[i.id].why&&!WHYS.includes(pick[i.id].why)?'on':'')+'">직접</button></div>'+
@@ -939,17 +944,25 @@ function closeSheet(x){
   function commit(){
     const W=week();
     W.lastClose=W.lastClose||{};
-    const undo=W.items.map(i=>({id:i.id,day:i.day,dayEnd:i.dayEnd,carry:i.carry||0}));
+    const undo=W.items.map(i=>({id:i.id,day:i.day,dayEnd:i.dayEnd,carry:i.carry||0,moved:!!i.moved}));
     const plogRep=(W.plog||[]).map(e=>!!e.rep);
+    const nk=shift(S.cur,1),spawned=[];
     const rec=[];
     late.forEach(i=>{const pk=pick[i.id];
       rec.push({t:i.title,place:i.place,cat:i.cat||'',prog:i.prog||0,to:pk.to,why:(pk.why||'').trim()});
       if(spanOf(i)){i.dayEnd=pk.to;if(pk.to===null){i.day=null;i.dayEnd=null}else if(pk.to<i.day){i.day=pk.to;i.dayEnd=null}}
       else i.day=pk.to;
-      i.carry=(i.carry||0)+1});
+      i.carry=(i.carry||0)+1;
+      if(pk.to===null){
+        i.moved=true;
+        if(!S.weeks[nk])S.weeks[nk]={items:[],route:[[],[],[],[],[]],closed:{},lastClose:{},plog:[]};
+        const n={...i,id:uid(),moved:false,day:null,dayEnd:null,day0:null,dayEnd0:null,
+          done:false,prog:0,feel:null,busy:null,key0:!!i.key,checks:[0,0,0,0,0]};
+        S.weeks[nk].items.push(n);spawned.push(n.id);
+      }});
     const chg=[];
     (W.plog||[]).forEach(e=>{if(!e.rep){e.rep=true;chg.push({t:e.t,place:e.place,s:e.s})}});
-    W.lastClose[x]={rec,chg,undo,plogRep};
+    W.lastClose[x]={rec,chg,undo,plogRep,nk,spawned};
     W.closed=W.closed||{};W.closed[x]=true;
     save();
   }
@@ -976,7 +989,7 @@ function reportText(x,branch){
 
   const rec=lc.rec.filter(r=>ok(r.place));
   if(rec.length)s+='\n■ 지연\n'+rec.map(r=>'-'+(branch==='전체'?'['+r.place+'] ':'')+r.t+
-    (r.prog>0?' '+r.prog+'%':'')+' → '+(r.to!=null?dayLabel(r.to):'이번주 아님')+'\n'+
+    (r.prog>0?' '+r.prog+'%':'')+' → '+(r.to!=null?dayLabel(r.to):'차주로 일정변경')+'\n'+
     (r.why?'  사유: '+r.why+'\n':'')).join('');
 
   const chg=lc.chg.filter(c=>ok(c.place));
@@ -1154,9 +1167,9 @@ $('#rollBtn').onclick=()=>{
   S.hist.push({title:wkTitle(),
     core:t1.length?Math.round(t1.filter(i=>i.done).length/t1.length*100)+'%':'—',
     slow:done.length?Math.round(done.filter(i=>i.feel==='slow').length/done.length*100)+'%':'—'});
-  const carry=week().items.filter(i=>!i.done&&i.kind!=='daily').map(i=>{
-    const n={...i,id:uid(),carry:(i.carry||0)+1,time:i.kind==='event'?null:i.time,day:i.kind==='event'?null:i.day};
-    n.day0=n.day;n.key0=!!n.key;return n});
+  const carry=week().items.filter(i=>!i.done&&i.kind!=='daily'&&!i.moved&&i.kind!=='adhoc').map(i=>{
+    const n={...i,id:uid(),moved:false,carry:(i.carry||0)+1,time:i.kind==='event'?null:i.time,day:i.kind==='event'?null:i.day};
+    n.day0=n.day;n.dayEnd0=n.dayEnd;n.key0=!!n.key;return n});
   const nk=shift(S.cur,1);
   S.weeks[nk]={items:[...(S.weeks[nk]?S.weeks[nk].items:[]),...carry],route:[[],[],[],[],[]],closed:{},lastClose:{},base:null};
   S.cur=nk;tap();render();seg(0);scrollTo({top:0,behavior:'smooth'});
